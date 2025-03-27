@@ -308,7 +308,7 @@ class MenuView:
         """Create a quantity selector with plus/minus buttons"""
         frame.destroy_children() if hasattr(frame, "destroy_children") else [child.destroy() for child in frame.winfo_children()]
         
-        selector_frame = customtkinter.CTkFrame(frame, fg_color=self.colors["primary"], corner_radius=8)
+        selector_frame = customtkinter.CTkFrame(frame, corner_radius=8)
         
         minus_btn = customtkinter.CTkButton(
             selector_frame, 
