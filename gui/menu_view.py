@@ -22,7 +22,7 @@ class MenuView:
         # Define color scheme
         self.colors = {
             "primary": "#4D77FF",
-            "secondary": "#5CE1E6",
+            "secondary": "#5C77E6",
             "accent": "#FF8C32",
             "success": "#38B000",
             "text_primary": "#333333",
@@ -44,28 +44,20 @@ class MenuView:
         self.filter_items("All")
         
     def _create_header(self):
-        # Align header with cart view
         header_frame = customtkinter.CTkFrame(self.root, fg_color="transparent", corner_radius=0)
-        header_frame.pack(pady=(20, 15), fill="x", padx=25)  # Match cart view padding
+        header_frame.pack(pady=(20, 15), fill="x", padx=25)  
         
-        # Logo and title with subtle shadow effect
         title_frame = customtkinter.CTkFrame(header_frame, fg_color="transparent")
-        title_frame.pack(side="left")
-        
-        logo_label = customtkinter.CTkLabel(
-            title_frame, 
-            text="🍽️", 
-            font=customtkinter.CTkFont(size=28)
-        )
-        logo_label.pack(side="left")
+        title_frame.pack(side="left", anchor="w")
         
         title = customtkinter.CTkLabel(
             title_frame, 
-            text="Canteeny", 
-            font=customtkinter.CTkFont(size=24, weight="bold")
+            text="🍴 Canteeny",  
+            font=customtkinter.CTkFont(size=24, weight="bold"),
+            compound="left" 
         )
-        title.pack(side="left", padx=(5, 0))
-        
+        title.pack(side="left", pady=0, padx=0)
+            
         # Make the cart clickable to open cart view with enhanced styling
         # Ensure consistent placement with back button in cart view
         self.cart_button = customtkinter.CTkButton(
@@ -75,11 +67,11 @@ class MenuView:
             font=customtkinter.CTkFont(size=14, weight="bold"),
             fg_color=self.colors["primary"],
             hover_color=self.colors["secondary"],
-            corner_radius=8,  # Match cart view button style
+            corner_radius=8,  
             height=36,
-            width=130  # Match back button width
+            width=130  
         )
-        self.cart_button.pack(side="right", padx=15)  # Match cart view title padding
+        self.cart_button.pack(side="right") 
         
         # Add a divider to match cart view
         divider = customtkinter.CTkFrame(self.root, height=1, fg_color=self.colors["border"])
@@ -136,7 +128,8 @@ class MenuView:
             selected_hover_color="#E67D2D",
             unselected_color=self.colors["card_bg"],
             unselected_hover_color=self.colors["hover"],
-            height=36
+            height=36,
+            corner_radius=8
         )
         segmented_button.pack(fill="x")
         
@@ -154,7 +147,7 @@ class MenuView:
         self.scrollable_frame = customtkinter.CTkScrollableFrame(
             self.root, 
             corner_radius=12,
-            fg_color="transparent",
+           
             height=300  # Match cart view height
         )
         self.scrollable_frame.pack(padx=25, pady=(0, 20), fill="both", expand=True)
@@ -191,7 +184,7 @@ class MenuView:
             border_width=1,
             border_color=("#E0E0E0", "#3A3A3A")
         )
-        item_frame.pack(fill="x", padx=5, pady=8)
+        item_frame.pack(fill="x", padx=5, pady=4)
         
         # Configure grid for flexible layout
         item_frame.grid_columnconfigure(1, weight=1)
@@ -260,7 +253,7 @@ class MenuView:
             fg_color="transparent",
             width=100
         )
-        action_container.grid(row=0, column=2, padx=(0, 15), pady=15, sticky="e")
+        action_container.grid(row=0, column=2, padx=(0, 30), pady=15, sticky="e")
         
         if quantity > 0:
             self._create_quantity_selector(action_container, item["name"])
@@ -281,7 +274,6 @@ class MenuView:
     def _create_quantity_selector(self, parent, item_name):
         frame = customtkinter.CTkFrame(
             parent, 
-            fg_color=self.colors["primary"],
             corner_radius=8
         )
         
@@ -290,7 +282,7 @@ class MenuView:
             text="−", 
             width=32,
             height=32,
-            fg_color="transparent",
+            fg_color=self.colors["primary"],
             text_color=("white", "white"),
             hover_color=self.colors["secondary"],
             font=customtkinter.CTkFont(size=16, weight="bold"),
@@ -314,7 +306,7 @@ class MenuView:
             text="+", 
             width=32,
             height=32,
-            fg_color="transparent",
+            fg_color=self.colors["primary"],
             text_color=("white", "white"),
             hover_color=self.colors["secondary"],
             font=customtkinter.CTkFont(size=16, weight="bold"),

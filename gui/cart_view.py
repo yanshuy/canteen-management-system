@@ -14,10 +14,9 @@ class CartView:
         self.on_back_to_menu = on_back_to_menu
         self.is_destroyed = False
         
-        # Define color scheme for consistency
         self.colors = {
             "primary": "#4D77FF",
-            "secondary": "#5CE1E6",
+            "secondary": "#5C77E6",
             "accent": "#FF8C32",
             "success": "#38B000",
             "danger": "#E63946",
@@ -25,7 +24,7 @@ class CartView:
             "text_secondary": "#666666",
             "card_bg": ("#FFFFFF", "#2B2B2B"),
             "hover": ("#E6E6E6", "#3A3A3A"),
-            "border": ("#E0E0E0", "#3A3A3A")
+            "border": ("#E0E0E0", "#3A3A3A") 
         }
         
         # Create a main frame for cart
@@ -58,14 +57,18 @@ class CartView:
         header_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent", corner_radius=0)
         header_frame.pack(fill="x", padx=25, pady=(20, 15))
         
-        # Create a container for the title to better align with the menu view
-        title_frame = ctk.CTkFrame(header_frame, fg_color="transparent")
-        title_frame.pack(side="left")
-        
-        # Back button with icon and hover effect
+        # Cart title - now on the left side
+        title_label = ctk.CTkLabel(
+            header_frame, 
+            text="Your Cart 🛒", 
+            font=ctk.CTkFont(size=24, weight="bold"),
+        )
+        title_label.pack(side="left")
+         
+        # Back button with icon and hover effect - now on the right side
         back_button = ctk.CTkButton(
-            title_frame, 
-            text="← Back to Menu", 
+            header_frame, 
+            text="Back to Menu", 
             command=self._on_back_button_click,
             width=130,
             height=36,
@@ -74,15 +77,7 @@ class CartView:
             font=ctk.CTkFont(size=14, weight="bold"),
             corner_radius=8
         )
-        back_button.pack(side="left")
-        
-        # Cart title with icon - move to right side for balance
-        title_label = ctk.CTkLabel(
-            header_frame, 
-            text="Your Cart 🛒", 
-            font=ctk.CTkFont(size=24, weight="bold")
-        )
-        title_label.pack(side="right", padx=15)
+        back_button.pack(side="right" )
         
         # Add a divider
         divider = ctk.CTkFrame(self.main_frame, height=1, fg_color=self.colors["border"])
@@ -109,12 +104,13 @@ class CartView:
     
     def _create_cart_content(self):
         """Create the scrollable frame to display cart items"""
-        content_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
-        content_frame.pack(fill="both", expand=True, padx=25)
+        # Create a container frame that will hold both the title and scrollable content
+        self.content_container = ctk.CTkFrame(self.main_frame, fg_color="transparent")
+        self.content_container.pack(fill="both", expand=True, padx=25)
         
         # Section title
         section_title = ctk.CTkLabel(
-            content_frame,
+            self.content_container,
             text="Order Items",
             font=ctk.CTkFont(size=18, weight="bold"),
             anchor="w"
@@ -123,7 +119,7 @@ class CartView:
         
         # Label for empty cart with improved styling
         self.empty_cart_label = ctk.CTkLabel(
-            content_frame,
+            self.content_container,
             text="Your cart is empty. Go back to the menu to add some items.",
             font=ctk.CTkFont(size=16),
             text_color=self.colors["text_secondary"],
@@ -131,42 +127,49 @@ class CartView:
             pady=20
         )
         
+        # Create a frame that will contain the scrollable frame - this allows for proper expanding
+        self.cart_container = ctk.CTkFrame(self.content_container, fg_color="transparent")
+        self.cart_container.pack(fill="both", expand=True, pady=(0, 10))
+        
         # Create scrollable frame with rounded corners for cart items
-        # Increase height to prevent cutting off
         self.cart_frame = ctk.CTkScrollableFrame(
-            content_frame, 
-            height=300,  # Increased height
+            self.cart_container, 
             corner_radius=12,
             fg_color=self.colors["card_bg"],
             border_width=1,
             border_color=self.colors["border"]
         )
+        self.cart_frame.pack(fill="both", expand=True)
         
         # Create table header with distinct styling
         header_frame = ctk.CTkFrame(self.cart_frame, fg_color="transparent", height=40)
         header_frame.pack(fill="x", pady=(5, 10))
         
         # Configure grid columns for proper alignment
-        header_frame.grid_columnconfigure(0, weight=5)  # Item name
+        header_frame.grid_columnconfigure(0, weight=4)  # Item name - slightly reduced
         header_frame.grid_columnconfigure(1, weight=2)  # Price
         header_frame.grid_columnconfigure(2, weight=2)  # Quantity
         header_frame.grid_columnconfigure(3, weight=2)  # Total
         header_frame.grid_columnconfigure(4, weight=1)  # Remove button
-        
-        # Create styled headers
+
+        # Create styled headers with consistent text alignment
         headers = ["Item", "Price", "Quantity", "Total", ""]
         for i, header in enumerate(headers):
             ctk.CTkLabel(
                 header_frame, 
                 text=header, 
                 font=ctk.CTkFont(size=14, weight="bold"),
-                anchor="w" if i == 0 else "e"
-            ).grid(row=0, column=i, sticky="w" if i == 0 else "e", padx=10, pady=5)
+                anchor="w" if i == 0 else "e"  # Left align for Item, right align for others
+            ).grid(row=0, column=i, 
+                sticky="w" if i == 0 else "e",  # Ensure proper sticky alignment 
+                padx=10, 
+                pady=5)
     
     def _create_special_instructions(self):
         """Create the special instructions section"""
+        # Make the special instructions section take less vertical space when cart is large
         instructions_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
-        instructions_frame.pack(fill="x", padx=25, pady=15)
+        instructions_frame.pack(fill="x", padx=25, pady=10)
         
         # Title with icon
         instructions_label = ctk.CTkLabel(
@@ -175,12 +178,12 @@ class CartView:
             font=ctk.CTkFont(size=18, weight="bold"),
             anchor="w"
         )
-        instructions_label.pack(anchor="w", pady=(0, 10))
+        instructions_label.pack(anchor="w", pady=(0, 5))  # Reduced padding
         
-        # Text box with improved styling
+        # Text box with improved styling - reduced height
         self.instructions_text = ctk.CTkTextbox(
             instructions_frame,
-            height=80,
+            height=60,  # Reduced height
             wrap="word",
             font=ctk.CTkFont(size=14),
             corner_radius=8,
@@ -204,14 +207,14 @@ class CartView:
     
     def _create_summary(self):
         """Create the order summary section with subtotal, tax, and total"""
-        # Add summary title
+        # Reduce vertical space for summary
         summary_title = ctk.CTkLabel(
             self.main_frame,
             text="Order Summary",
             font=ctk.CTkFont(size=18, weight="bold"),
             anchor="w"
         )
-        summary_title.pack(anchor="w", padx=25, pady=(15, 10))
+        summary_title.pack(anchor="w", padx=25, pady=(10, 5))  # Reduced padding
         
         # Summary card with border
         self.summary_frame = ctk.CTkFrame(
@@ -334,15 +337,17 @@ class CartView:
             # Check if cart is empty
             if not cart_items:
                 self.empty_cart_label.pack(pady=50)
-                self.cart_frame.pack_forget()
+                self.cart_container.pack_forget()  # Hide the container instead of just the frame
                 if hasattr(self, 'checkout_button') and self.checkout_button.winfo_exists():
                     self.checkout_button.configure(state="disabled")
                 self.update_summary(0)
                 return
             else:
                 self.empty_cart_label.pack_forget()
-                # Make sure to expand properly to prevent cut-off
-                self.cart_frame.pack(fill="both", expand=True, pady=(0, 10))
+                # Make sure container is visible and properly expanded
+                self.cart_container.pack(fill="both", expand=True, pady=(0, 10))
+                # Ensure the scrollable frame fills the container
+                self.cart_frame.pack(fill="both", expand=True)
                 if hasattr(self, 'checkout_button') and self.checkout_button.winfo_exists():
                     self.checkout_button.configure(state="normal")
             
@@ -366,7 +371,7 @@ class CartView:
                     item_frame.pack(fill="x", pady=1)
                     
                     # Configure grid layout
-                    item_frame.grid_columnconfigure(0, weight=5)  # Item name
+                    item_frame.grid_columnconfigure(0, weight=4)  # Item name
                     item_frame.grid_columnconfigure(1, weight=2)  # Price
                     item_frame.grid_columnconfigure(2, weight=2)  # Quantity
                     item_frame.grid_columnconfigure(3, weight=2)  # Total
@@ -387,6 +392,7 @@ class CartView:
                     ctk.CTkLabel(
                         item_frame, 
                         text=price_text,
+                        font=ctk.CTkFont(size=14),
                         anchor="e"
                     ).grid(row=0, column=1, sticky="e", padx=10, pady=10)
                     

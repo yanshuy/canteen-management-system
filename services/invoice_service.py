@@ -96,13 +96,13 @@ class InvoiceGenerator:
         .invoice-header {{
             text-align: center;
             margin-bottom: 30px;
-            border-bottom: 2px solid #4D77FF;
+            border-bottom: 2px solid #FF8C32;
             padding-bottom: 20px;
-            color: #4D77FF;
+            color: #FF8C32;
         }}
         .invoice-header h1 {{
             margin-bottom: 5px;
-            color: #4D77FF;
+            color: #FF8C32;
         }}
         .invoice-header h2 {{
             margin-top: 0;
@@ -126,7 +126,7 @@ class InvoiceGenerator:
             text-align: left;
         }}
         th {{
-            background-color: #4D77FF;
+            background-color: #FF8C32;
             color: white;
             font-weight: 500;
         }}

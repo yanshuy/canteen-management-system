@@ -12,7 +12,7 @@ class CanteenApp:
         
         # Create main window
         self.app = customtkinter.CTk()
-        self.app.geometry("720x580")
+        self.app.geometry("720x720")
         self.app.title("canteen management system")
         
         # Get the base directory for the project
