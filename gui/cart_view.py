@@ -142,28 +142,35 @@ class CartView:
         self.cart_frame.pack(fill="both", expand=True)
         
         # Create table header with distinct styling
-        header_frame = ctk.CTkFrame(self.cart_frame, fg_color="transparent", height=40)
-        header_frame.pack(fill="x", pady=(5, 10))
+        self.header_frame = ctk.CTkFrame(self.cart_frame, fg_color="transparent", height=40)
+        self.header_frame.pack(fill="x", pady=(5, 10))
         
-        # Configure grid columns for proper alignment
-        header_frame.grid_columnconfigure(0, weight=4)  # Item name - slightly reduced
-        header_frame.grid_columnconfigure(1, weight=2)  # Price
-        header_frame.grid_columnconfigure(2, weight=2)  # Quantity
-        header_frame.grid_columnconfigure(3, weight=2)  # Total
-        header_frame.grid_columnconfigure(4, weight=1)  # Remove button
+        # Configure grid columns with fixed minimum widths for consistency
+        self.header_frame.grid_columnconfigure(0, weight=6, minsize=150)  # Item name
+        self.header_frame.grid_columnconfigure(1, weight=2, minsize=70)   # Price
+        self.header_frame.grid_columnconfigure(2, weight=2, minsize=100)  # Quantity
+        self.header_frame.grid_columnconfigure(3, weight=2, minsize=70)   # Total
+        self.header_frame.grid_columnconfigure(4, weight=0, minsize=40)   # Remove button
 
         # Create styled headers with consistent text alignment
         headers = ["Item", "Price", "Quantity", "Total", ""]
+        alignments = ["w", "center", "center", "e", "center"]  # Proper anchor for each column
+        sticky_values = ["w", "ew", "n", "e", "ns"]  # Proper sticky for positioning
+        
         for i, header in enumerate(headers):
             ctk.CTkLabel(
-                header_frame, 
+                self.header_frame, 
                 text=header, 
                 font=ctk.CTkFont(size=14, weight="bold"),
-                anchor="w" if i == 0 else "e"  # Left align for Item, right align for others
+                anchor=alignments[i]  
             ).grid(row=0, column=i, 
-                sticky="w" if i == 0 else "e",  # Ensure proper sticky alignment 
+                sticky=sticky_values[i],  # Consistent sticky values
                 padx=10, 
                 pady=5)
+        
+        # Create a container for cart items
+        self.items_container = ctk.CTkFrame(self.cart_frame, fg_color="transparent")
+        self.items_container.pack(fill="x", expand=True)
     
     def _create_special_instructions(self):
         """Create the special instructions section"""
@@ -323,15 +330,6 @@ class CartView:
             if not self.cart_frame.winfo_exists():
                 return
                 
-            # Clear existing items (except header)
-            children = self.cart_frame.winfo_children()
-            if children:
-                header = children[0] if len(children) > 0 else None
-                
-                for widget in children:
-                    if widget != header:
-                        widget.destroy()
-            
             cart_items = self.cart_service.get_all_items()
             
             # Check if cart is empty
@@ -351,11 +349,18 @@ class CartView:
                 if hasattr(self, 'checkout_button') and self.checkout_button.winfo_exists():
                     self.checkout_button.configure(state="normal")
             
+            # Check if items container exists, recreate if needed
+            if not hasattr(self, 'items_container') or not self.items_container.winfo_exists():
+                self.items_container = ctk.CTkFrame(self.cart_frame, fg_color="transparent")
+                self.items_container.pack(fill="x", expand=True)
+            
+            # Clear all existing items from the container to prevent duplicates
+            for widget in self.items_container.winfo_children():
+                widget.destroy()
+            
             # Display cart items
             subtotal = 0
-            
-            # Use a dictionary to store item references
-            self.item_frames = {}
+            current_item_frames = {}
             
             for i, (item_name, quantity) in enumerate(cart_items.items()):
                 # Find the menu item details
@@ -365,27 +370,29 @@ class CartView:
                 if menu_item:
                     # Create a frame for this item with alternating background for better readability
                     item_frame = ctk.CTkFrame(
-                        self.cart_frame, 
-                        fg_color="transparent" if i % 2 == 0 else self.colors["hover"]
+                        self.items_container, 
+                        fg_color="transparent" if i % 2 == 0 else self.colors["hover"],
                     )
                     item_frame.pack(fill="x", pady=1)
+                    current_item_frames[item_name] = item_frame
                     
-                    # Configure grid layout
-                    item_frame.grid_columnconfigure(0, weight=4)  # Item name
-                    item_frame.grid_columnconfigure(1, weight=2)  # Price
-                    item_frame.grid_columnconfigure(2, weight=2)  # Quantity
-                    item_frame.grid_columnconfigure(3, weight=2)  # Total
-                    item_frame.grid_columnconfigure(4, weight=1)  # Remove button
+                    # Configure grid layout with the same column configuration as header - EXACT MATCH
+                    item_frame.grid_columnconfigure(0, weight=6, minsize=150)  # Item name
+                    item_frame.grid_columnconfigure(1, weight=2, minsize=70)   # Price
+                    item_frame.grid_columnconfigure(2, weight=2, minsize=100)  # Quantity
+                    item_frame.grid_columnconfigure(3, weight=2, minsize=70)   # Total
+                    item_frame.grid_columnconfigure(4, weight=0, minsize=40)   # Remove button
                     
-                    # Item name
-                    ctk.CTkLabel(
+                    # Item name with ellipsis for long names
+                    name_label = ctk.CTkLabel(
                         item_frame, 
                         text=item_name,
                         font=ctk.CTkFont(size=14),
                         anchor="w"
-                    ).grid(row=0, column=0, sticky="w", padx=10, pady=10)
+                    )
+                    name_label.grid(row=0, column=0, sticky="w", padx=10, pady=10)
                     
-                    # Item price
+                    # Item price - align right
                     price_text = menu_item["price"]
                     price_value = float(price_text.replace("₹", ""))
                     
@@ -393,20 +400,18 @@ class CartView:
                         item_frame, 
                         text=price_text,
                         font=ctk.CTkFont(size=14),
-                        anchor="e"
-                    ).grid(row=0, column=1, sticky="e", padx=10, pady=10)
+                        anchor="e",
+                    ).grid(row=0, column=1, sticky="ew", padx=80, pady=10)
                     
-                    # Quantity controls - using a safer approach to avoid widget destruction issues
-                    qty_frame = ctk.CTkFrame(item_frame, fg_color="transparent")
-                    qty_frame.grid(row=0, column=2, sticky="e", padx=10, pady=10)
+                    # Quantity controls - create centered container
+                    qty_container = ctk.CTkFrame(item_frame, fg_color="transparent")
+                    qty_container.grid(row=0, column=2, sticky="ew", padx=10, pady=10)  # Centered vertically
                     
-                    # Store reference in dictionary
-                    self.item_frames[item_name] = {
-                        "frame": qty_frame,
-                        "quantity": quantity
-                    }
+                    # Center the quantity controls within the frame
+                    qty_frame = ctk.CTkFrame(qty_container, fg_color="transparent")
+                    qty_frame.pack(expand=True)
                     
-                    # Use lambda functions with default arguments to capture values properly
+                    # Horizontally layout the quantity controls
                     minus_btn = ctk.CTkButton(
                         qty_frame, 
                         text="−", 
@@ -424,7 +429,8 @@ class CartView:
                         qty_frame, 
                         text=str(quantity),
                         width=30,
-                        font=ctk.CTkFont(size=14)
+                        font=ctk.CTkFont(size=14),
+                        anchor="center"
                     )
                     qty_label.pack(side="left", padx=2)
                     
@@ -441,7 +447,12 @@ class CartView:
                     )
                     plus_btn.pack(side="left", padx=2)
                     
-                    # Item total
+                    # Store reference to quantity label for direct updates
+                    if not hasattr(self, 'qty_labels'):
+                        self.qty_labels = {}
+                    self.qty_labels[item_name] = qty_label
+                    
+                    # Item total - align right consistently with header
                     item_total = price_value * quantity
                     subtotal += item_total
                     
@@ -452,9 +463,12 @@ class CartView:
                         anchor="e"
                     ).grid(row=0, column=3, sticky="e", padx=10, pady=10)
                     
-                    # Add remove button - use direct lambda with name arg
+                    # Add remove button - centered
+                    remove_container = ctk.CTkFrame(item_frame, fg_color="transparent")
+                    remove_container.grid(row=0, column=4, sticky="ns", padx=10, pady=10)  # Centered vertically
+                    
                     remove_btn = ctk.CTkButton(
-                        item_frame, 
+                        remove_container, 
                         text="×", 
                         width=28, 
                         height=28,
@@ -464,7 +478,10 @@ class CartView:
                         font=ctk.CTkFont(size=14, weight="bold"),
                         command=lambda name=item_name: self._remove_item(name)
                     )
-                    remove_btn.grid(row=0, column=4, padx=10, pady=10)
+                    remove_btn.pack(expand=True)
+            
+            # Store current item frames for reference
+            self.item_frames = current_item_frames
             
             # Update the summary
             self.update_summary(subtotal)
@@ -498,14 +515,37 @@ class CartView:
             else:
                 self.cart_service.update_quantity(item_name, new_qty)
                 
-                # Directly update quantity display for immediate feedback
-                if item_name in self.item_frames:
-                    qty_frame = self.item_frames[item_name]["frame"]
-                    if qty_frame.winfo_exists():
-                        # Update the label (second child)
-                        children = qty_frame.winfo_children()
-                        if len(children) > 1 and isinstance(children[1], ctk.CTkLabel):
-                            children[1].configure(text=str(new_qty))
+                # Directly update quantity label for immediate feedback without redrawing
+                if hasattr(self, 'qty_labels') and item_name in self.qty_labels:
+                    qty_label = self.qty_labels[item_name]
+                    if qty_label.winfo_exists():
+                        qty_label.configure(text=str(new_qty))
+                        
+                        # Also update the item total display
+                        if hasattr(self, 'item_frames') and item_name in self.item_frames:
+                            item_frame = self.item_frames[item_name]
+                            if item_frame.winfo_exists():
+                                # Find menu item price
+                                menu_item = next((item for item in self.menu_service.get_all_items() 
+                                            if item["name"] == item_name), None)
+                                if menu_item:
+                                    price_value = float(menu_item["price"].replace("₹", ""))
+                                    item_total = price_value * new_qty
+                                    
+                                    # Find and update total label (column 3)
+                                    children = item_frame.grid_slaves(row=0, column=3)
+                                    if children:
+                                        total_label = children[0]
+                                        total_label.configure(text=f"₹{item_total:.2f}")
+                
+                # Update summary without redrawing everything
+                cart_items = self.cart_service.get_all_items()
+                subtotal = sum(
+                    float(next((item["price"].replace("₹", "") for item in self.menu_service.get_all_items() 
+                           if item["name"] == item_name), 0)) * qty
+                    for item_name, qty in cart_items.items()
+                )
+                self.update_summary(subtotal)
         except Exception as e:
             print(f"Error updating quantity: {e}")
     
