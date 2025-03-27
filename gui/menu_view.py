@@ -1,23 +1,29 @@
 import tkinter
 import customtkinter
-from PIL import Image
+from PIL import Image, ImageTk
 import os
+import requests
+from io import BytesIO
+from services.image_cache import ImageCache
 
 class MenuView:
-    def __init__(self, root, menu_service, cart_service, image_loader=None, on_view_cart=None):
+    def __init__(self, root, menu_service, cart_service, on_view_cart=None):
         self.root = root
         self.menu_service = menu_service
         self.cart_service = cart_service
         self.on_view_cart = on_view_cart  # Callback for when Cart is clicked
-        
-        # Set up image loader if provided, otherwise use placeholder
-        self.image_loader = image_loader
         
         # Create placeholder image
         self.placeholder_image = customtkinter.CTkImage(
             Image.new("RGB", (100, 100), "gray"), 
             size=(100, 100)
         )
+        
+        # Initialize the image cache
+        self.image_cache = ImageCache()
+        
+        # Keep track of image labels for updating
+        self.image_labels = {}
         
         # Define color scheme
         self.colors = {
@@ -153,6 +159,9 @@ class MenuView:
         self.scrollable_frame.pack(padx=25, pady=(0, 20), fill="both", expand=True)
         
     def filter_items(self, category):
+        # Clear image label references for the old view
+        self.image_labels = {}
+        
         # Clear current items
         for widget in self.scrollable_frame.winfo_children():
             widget.destroy()
@@ -175,6 +184,22 @@ class MenuView:
         for i, item in enumerate(filtered_items):
             self._create_item_widget(item)
     
+    def _load_image_from_url(self, url, size=(120, 120), label_id=None):
+        """Load an image from a URL using the image cache service"""
+        def update_callback(image):
+            # This callback is called when an image is loaded
+            if label_id and label_id in self.image_labels and hasattr(self, 'root') and self.root.winfo_exists():
+                try:
+                    label = self.image_labels[label_id]
+                    if label.winfo_exists():
+                        print(f"Updating label with image: {url}")
+                        label.configure(image=image)
+                        self.root.update_idletasks()
+                except Exception as e:
+                    print(f"Error updating image in callback: {e}")
+        
+        return self.image_cache.get_image(url, size, update_callback, self.placeholder_image)
+    
     def _create_item_widget(self, item):
         # Create a card-like frame with shadow effect
         item_frame = customtkinter.CTkFrame(
@@ -189,12 +214,16 @@ class MenuView:
         # Configure grid for flexible layout
         item_frame.grid_columnconfigure(1, weight=1)
         
+        # Generate a unique ID for this image label
+        label_id = f"img_{item['name']}_{id(item)}"
+        
         # Item image with rounded corners and proper aspect ratio
-        if self.image_loader and "image_path" in item:
-            item_image = self.image_loader.load_image(item["image_path"], size=(120, 120))
+        if "image_url" in item:
+            item_image = self._load_image_from_url(item["image_url"], size=(120, 120), label_id=label_id)
         else:
             item_image = self.placeholder_image
-            
+        
+        # Store image widget reference for later updates
         image_container = customtkinter.CTkFrame(
             item_frame, 
             fg_color="transparent",
@@ -209,6 +238,10 @@ class MenuView:
             text=""
         )
         image_label.place(relx=0.5, rely=0.5, anchor="center")
+        
+        # Store the label reference for later updates
+        if "image_url" in item:
+            self.image_labels[label_id] = image_label
         
         # Item information with better text hierarchy
         info_frame = customtkinter.CTkFrame(item_frame, fg_color="transparent")
@@ -267,18 +300,18 @@ class MenuView:
                 fg_color=self.colors["primary"],
                 hover_color=self.colors["secondary"],
                 corner_radius=8,
-                command=lambda: self._add_initial(item["name"], action_container)
+                command=lambda name=item["name"]: self._add_initial(name, action_container)
             )
             add_btn.pack(pady=5)
-    
-    def _create_quantity_selector(self, parent, item_name):
-        frame = customtkinter.CTkFrame(
-            parent, 
-            corner_radius=8
-        )
+            
+    def _create_quantity_selector(self, frame, item_name):
+        """Create a quantity selector with plus/minus buttons"""
+        frame.destroy_children() if hasattr(frame, "destroy_children") else [child.destroy() for child in frame.winfo_children()]
+        
+        selector_frame = customtkinter.CTkFrame(frame, fg_color=self.colors["primary"], corner_radius=8)
         
         minus_btn = customtkinter.CTkButton(
-            frame, 
+            selector_frame, 
             text="−", 
             width=32,
             height=32,
@@ -287,13 +320,13 @@ class MenuView:
             hover_color=self.colors["secondary"],
             font=customtkinter.CTkFont(size=16, weight="bold"),
             corner_radius=8,
-            command=lambda: self._update_quantity(item_name, -1, frame)
+            command=lambda: self._update_quantity(item_name, -1, selector_frame)
         )
         minus_btn.pack(side="left", padx=(3, 0), pady=3)
         
         current_qty = self.cart_service.get_quantity(item_name)
         qty_label = customtkinter.CTkLabel(
-            frame, 
+            selector_frame, 
             text=str(current_qty), 
             width=32,
             font=customtkinter.CTkFont(size=14, weight="bold"),
@@ -302,7 +335,7 @@ class MenuView:
         qty_label.pack(side="left")
         
         plus_btn = customtkinter.CTkButton(
-            frame, 
+            selector_frame, 
             text="+", 
             width=32,
             height=32,
@@ -311,12 +344,12 @@ class MenuView:
             hover_color=self.colors["secondary"],
             font=customtkinter.CTkFont(size=16, weight="bold"),
             corner_radius=8,
-            command=lambda: self._update_quantity(item_name, 1, frame)
+            command=lambda: self._update_quantity(item_name, 1, selector_frame)
         )
         plus_btn.pack(side="left", padx=(0, 3), pady=3)
         
-        frame.pack(pady=5)
-        return frame
+        selector_frame.pack(pady=5)
+        return selector_frame
     
     def _update_quantity(self, item_name, delta, container):
         try:
