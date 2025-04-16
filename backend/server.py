@@ -87,5 +87,52 @@ def get_payment_status(order_id):
         print('DB Error:', e)
         return jsonify({'status': 'error', 'message': 'Failed to fetch payment status'}), 500
 
+@app.route('/menu-items', methods=['POST'])
+def add_menu_item():
+    data = request.get_json()
+    name = data.get('name')
+    price = data.get('price')
+    description = data.get('description', '')
+    image_url = data.get('image_url', '')
+    category = data.get('category', '')
+    if not name or not price or not category:
+        return jsonify({'status': 'error', 'message': 'Missing required fields'}), 400
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        c.execute('''
+            INSERT INTO menu_items (name, price, description, image_url, category)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (name, price, description, image_url, category))
+        conn.commit()
+        conn.close()
+        return jsonify({'status': 'success', 'message': 'Menu item added'}), 201
+    except Exception as e:
+        print('DB Error:', e)
+        return jsonify({'status': 'error', 'message': 'Failed to add menu item'}), 500
+
+@app.route('/menu-items', methods=['GET'])
+def get_menu_items():
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        c.execute('SELECT id, name, price, description, image_url, category FROM menu_items')
+        rows = c.fetchall()
+        conn.close()
+        items = []
+        for row in rows:
+            items.append({
+                'id': row[0],
+                'name': row[1],
+                'price': row[2],
+                'description': row[3],
+                'image_url': row[4],
+                'category': row[5]
+            })
+        return jsonify({'status': 'success', 'items': items}), 200
+    except Exception as e:
+        print('DB Error:', e)
+        return jsonify({'status': 'error', 'message': 'Failed to fetch menu items'}), 500
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

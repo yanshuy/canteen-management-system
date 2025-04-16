@@ -162,35 +162,28 @@ class ImageCache:
     def get_image(self, url, size=(120, 120), callback=None, placeholder=None):
         """
         Get an image from the cache or load it asynchronously.
-        
-        Args:
-            url (str): The URL of the image
-            size (tuple): The desired size (width, height)
-            callback (function): Optional callback function to call when image is loaded
-            placeholder (CTkImage): Placeholder image to return while loading
-            
-        Returns:
-            CTkImage: The cached image if available, otherwise the placeholder
+        Prevents duplicate background loading for the same image and size.
         """
         cache_key = self._get_cache_key(url, size)
-        
+
         # Check if image is in memory cache
         if cache_key in self.memory_cache:
             return self.memory_cache[cache_key]
-        
+
         # Check if image is in disk cache
         disk_cached = self._load_from_disk_cache(url, size)
         if disk_cached:
             self.memory_cache[cache_key] = disk_cached
             return disk_cached
-        
+
         # Not cached, queue for background loading
         with self.lock:
-            # Add to queue for background loading if not already there
-            if not any(item[0] == url and item[1] == size for item in self.background_queue):
+            # Prevent duplicate queueing for the same image/size/callback
+            already_queued = any(item[0] == url and item[1] == size and item[2] == callback for item in self.background_queue)
+            if not already_queued:
                 print(f"Queuing image for background loading: {url}")
                 self.background_queue.append((url, size, callback))
-        
+
         # Return placeholder while loading
         return placeholder
     

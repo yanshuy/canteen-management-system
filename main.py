@@ -1,8 +1,9 @@
 import customtkinter
 import os
 
-from services import MenuService, CartService, ImageCache
+from services import MenuService, CartService, ImageCache, AuthService
 from gui import MenuView, CartView
+from gui.login import LoginView
 
 class CanteenApp:
     def __init__(self):
@@ -26,6 +27,7 @@ class CanteenApp:
         self.menu_service = MenuService()
         self.cart_service = CartService()
         self.image_cache = ImageCache()  # Initialize global image cache
+        self.auth_service = AuthService()  # Add AuthService
         
         # Create view container frame 
         self.container_frame = customtkinter.CTkFrame(self.app)
@@ -33,16 +35,36 @@ class CanteenApp:
         
         self.app.protocol("WM_DELETE_WINDOW", self.on_close)
 
-        # Start with menu view
-        self.show_menu_view()
+        # Start with login view
+        self.show_login_view()
     
     def clear_container(self):
         """Clear the container frame for view switching"""
         for widget in self.container_frame.winfo_children():
             widget.destroy()
     
-    def show_menu_view(self):
-        """Switch to menu view"""
+    def preload_menu_images(self):
+        """Preload all menu item images in the background while user is logging in."""
+        items = self.menu_service.get_all_items()
+        for item in items:
+            url = item.get("image_url")
+            if url:
+                # Preload with default menu image size (used in MenuView)
+                self.image_cache.get_image(url, size=(120, 120))
+    
+    def show_login_view(self):
+        """Switch to login view and start preloading menu images."""
+        self.clear_container()
+        self.login_view = LoginView(
+            self.container_frame,
+            self.auth_service,
+            on_login_success=self.show_menu_view
+        )
+        # Start preloading images in the background
+        self.preload_menu_images()
+
+    def show_menu_view(self, user=None):
+        """Switch to menu view (after login)"""
         self.clear_container()
         self.menu_view = MenuView(
             self.container_frame, 

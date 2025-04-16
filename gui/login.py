@@ -74,15 +74,9 @@ class LoginView:
             text="Welcome back!",
             font=customtkinter.CTkFont(size=18, weight="bold")
         )
-        welcome_label.grid(row=2, column=0, pady=(0, 5))
+        welcome_label.grid(row=2, column=0, pady=(0, 30))
         
-        subtitle_label = customtkinter.CTkLabel(
-            self.login_frame,
-            text="Sign in to your account",
-            font=customtkinter.CTkFont(size=14),
-            text_color=self.colors["text_secondary"]
-        )
-        subtitle_label.grid(row=3, column=0, pady=(0, 25))
+    
         
         # Username field
         self.username_entry = customtkinter.CTkEntry(
@@ -121,19 +115,6 @@ class LoginView:
         self.error_label.grid(row=6, column=0, pady=(0, 15))
         self.error_label.grid_remove()  # Hide initially
         
-        # Forgot password link
-        forgot_password_button = customtkinter.CTkButton(
-            self.login_frame,
-            text="Forgot Password?",
-            font=customtkinter.CTkFont(size=13),
-            fg_color="transparent",
-            hover_color=self.colors["hover"],
-            text_color=self.colors["primary"],
-            command=self.forgot_password,
-            width=140,
-            height=28
-        )
-        forgot_password_button.grid(row=7, column=0, pady=(0, 15))
         
         # Login button
         login_button = customtkinter.CTkButton(
@@ -147,67 +128,11 @@ class LoginView:
             width=300,
             height=45
         )
-        login_button.grid(row=8, column=0, padx=50, pady=(0, 20))
+        login_button.grid(row=8, column=0, padx=50, pady=(20, 20))
         
-        # Divider with "or" text
-        divider_frame = customtkinter.CTkFrame(
-            self.login_frame,
-            fg_color="transparent",
-            height=20
-        )
-        divider_frame.grid(row=9, column=0, sticky="ew", padx=50, pady=(0, 20))
-        divider_frame.grid_columnconfigure(0, weight=1)
-        divider_frame.grid_columnconfigure(2, weight=1)
         
-        left_line = customtkinter.CTkFrame(
-            divider_frame,
-            height=1,
-            fg_color=self.colors["border"]
-        )
-        left_line.grid(row=0, column=0, sticky="ew", padx=(0, 10))
         
-        or_label = customtkinter.CTkLabel(
-            divider_frame,
-            text="OR",
-            font=customtkinter.CTkFont(size=12),
-            text_color=self.colors["text_secondary"]
-        )
-        or_label.grid(row=0, column=1)
-        
-        right_line = customtkinter.CTkFrame(
-            divider_frame,
-            height=1,
-            fg_color=self.colors["border"]
-        )
-        right_line.grid(row=0, column=2, sticky="ew", padx=(10, 0))
-        
-        # Sign up link
-        signup_frame = customtkinter.CTkFrame(
-            self.login_frame,
-            fg_color="transparent"
-        )
-        signup_frame.grid(row=10, column=0, pady=(0, 20))
-        
-        signup_text = customtkinter.CTkLabel(
-            signup_frame,
-            text="Don't have an account?",
-            font=customtkinter.CTkFont(size=13),
-            text_color=self.colors["text_secondary"]
-        )
-        signup_text.pack(side="left")
-        
-        signup_button = customtkinter.CTkButton(
-            signup_frame,
-            text="Sign Up",
-            font=customtkinter.CTkFont(size=13, weight="bold"),
-            fg_color="transparent",
-            hover_color=self.colors["hover"],  # Change this line to use the hover color from colors dict
-            text_color=self.colors["primary"],
-            command=self.show_signup,
-            width=70,
-            height=28
-        )
-        signup_button.pack(side="left", padx=(5, 0))
+       
         
     def show_error(self, message):
         """Show error message below password field"""
@@ -258,23 +183,3 @@ class LoginView:
         print("Sign up clicked")
         # This would typically switch to a signup screen
 
-# Example usage:
-if __name__ == "__main__":
-    # For testing purposes only
-    class DummyAuthService:
-        def login(self, username, password):
-            if username == "test" and password == "password":
-                return {"success": True, "user": {"username": username}}
-            return {"success": False, "message": "Invalid username or password"}
-    
-    app = customtkinter.CTk()
-    app.title("Canteeny - Login")
-    app.geometry("800x600")
-    app.minsize(500, 550)
-    
-    def on_login_success(user):
-        print(f"User {user['username']} logged in successfully!")
-        app.quit()  # In real app, would transition to menu
-    
-    login_view = LoginView(app, DummyAuthService(), on_login_success)
-    app.mainloop()

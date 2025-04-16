@@ -1,7 +1,9 @@
+import customtkinter as ctk
 import tkinter as tk
 from tkinter import ttk
 from PIL import Image, ImageTk, ImageDraw
 import os
+import requests
 from utils.colors import COLORS
 from utils.widgets import Card
 from utils.images import create_default_image
@@ -49,7 +51,7 @@ class ItemCard(tk.Frame):
     def __init__(self, parent, item_data):
         super().__init__(
             parent,
-            bg=COLORS["bg_card"],
+            bg="#F8FAFC",  # Light card background
             padx=15,
             pady=15,
             highlightbackground=COLORS["border"],
@@ -57,398 +59,273 @@ class ItemCard(tk.Frame):
             bd=0,
             relief=tk.RAISED
         )
-        
         self.item_data = item_data
-        
-        # Create grid layout
-        self.columnconfigure(0, weight=1)
-        self.columnconfigure(1, weight=2)
-        
-        # Image container with rounded corners
-        self.image_container = tk.Frame(self, bg=COLORS["border"])
-        self.image_container.grid(row=0, column=0, rowspan=4, padx=(0, 15), sticky="nsew")
+        self.columnconfigure(0, weight=0)
+        self.columnconfigure(1, weight=1)
+        # Image
+        self.image_container = tk.Frame(self, bg="#E0E7EF", width=110, height=110)
+        self.image_container.grid(row=0, column=0, rowspan=3, padx=(0, 18), sticky="n")
         self.image_container.grid_propagate(False)
-        self.image_container.configure(width=150, height=150)
-        
-        # Load image from assets
-        self.load_image()
-        
-        # Item name
+        self._load_image()
+        # Name
         self.name_label = tk.Label(
             self,
             text=item_data["name"],
-            font=("Segoe UI", 14, "bold"),
-            bg=COLORS["bg_card"],
+            font=("Segoe UI", 15, "bold"),
+            bg="#F8FAFC",
             fg=COLORS["text_primary"],
-            anchor="w",
-            justify="left"
+            anchor="w"
         )
         self.name_label.grid(row=0, column=1, sticky="w")
-        
-        # Item category with modern pill design
-        self.category_pill = tk.Frame(self, bg="#E0F2FE", bd=0)
-        self.category_pill.grid(row=1, column=1, sticky="w", pady=(0, 5))
-        
-        self.category_label = tk.Label(
-            self.category_pill,
-            text=item_data["category"],
-            font=("Segoe UI", 9),
-            bg="#E0F2FE",
-            fg="#0369A1",
-            padx=8,
-            pady=2
-        )
-        self.category_label.pack()
-        
-        # Item price
-        self.price_frame = tk.Frame(self, bg=COLORS["bg_card"])
-        self.price_frame.grid(row=2, column=1, sticky="w", pady=(0, 10))
-        
+        # Categories as colored pills
+        cat_frame = tk.Frame(self, bg="#F8FAFC")
+        cat_frame.grid(row=1, column=1, sticky="w", pady=(2, 0))
+        for cat in item_data["category"]:
+            pill = tk.Label(
+                cat_frame,
+                text=cat,
+                font=("Segoe UI", 9, "bold"),
+                bg="#E0F2FE",
+                fg="#0369A1",
+                padx=8,
+                pady=2,
+                bd=0,
+                relief=tk.FLAT
+            )
+            pill.pack(side=tk.LEFT, padx=(0, 6))
+        # Price
         self.price_label = tk.Label(
-            self.price_frame,
+            self,
             text=f"₹{item_data['price']:.2f}",
-            font=("Segoe UI", 12, "bold"),
-            bg=COLORS["bg_card"],
-            fg=COLORS["primary"]
+            font=("Segoe UI", 13, "bold"),
+            bg="#F8FAFC",
+            fg=COLORS["accent"]
         )
-        self.price_label.pack(side=tk.LEFT)
-        
-        if item_data.get("old_price"):
-            self.old_price_label = tk.Label(
-                self.price_frame,
-                text=f"₹{item_data['old_price']:.2f}",
-                font=("Segoe UI", 10),
-                bg=COLORS["bg_card"],
-                fg=COLORS["text_secondary"],
-                padx=5
-            )
-            self.old_price_label.pack(side=tk.LEFT)
-            
-            # Add strikethrough to old price
-            self.old_price_label.update()
-            x, y = 0, self.old_price_label.winfo_height() // 2
-            width = self.old_price_label.winfo_width()
-            self.canvas = tk.Canvas(
-                self.old_price_label, 
-                width=width, 
-                height=1, 
-                bg=COLORS["text_secondary"],
-                highlightthickness=0
-            )
-            self.canvas.place(x=x, y=y)
-        
-        # Action buttons with modern style
-        self.button_frame = tk.Frame(self, bg=COLORS["bg_card"])
-        self.button_frame.grid(row=3, column=1, sticky="w")
-        
-        self.edit_button = tk.Button(
-            self.button_frame,
-            text="Edit",
-            bg=COLORS["primary"],
-            fg=COLORS["text_light"],
-            font=("Segoe UI", 10),
-            padx=12,
-            pady=4,
-            bd=0,
-            cursor="hand2",
-            activebackground=COLORS["primary_hover"],
-            activeforeground=COLORS["text_light"],
-            relief=tk.FLAT
-        )
-        self.edit_button.pack(side=tk.LEFT, padx=(0, 10))
-        
-        self.delete_button = tk.Button(
-            self.button_frame,
-            text="Delete",
-            bg=COLORS["danger"],
-            fg=COLORS["text_light"],
-            font=("Segoe UI", 10),
-            padx=12,
-            pady=4,
-            bd=0,
-            cursor="hand2",
-            activebackground=COLORS["danger_hover"],
-            activeforeground=COLORS["text_light"],
-            relief=tk.FLAT
-        )
-        self.delete_button.pack(side=tk.LEFT)
-        
-        # Stock status with modern pill design
-        stock_bg = "#DCFCE7" if item_data["in_stock"] else "#FEE2E2"
-        stock_fg = "#166534" if item_data["in_stock"] else "#991B1B"
-        stock_text = "In Stock" if item_data["in_stock"] else "Out of Stock"
-        
-        self.stock_pill = tk.Frame(self, bg=stock_bg, bd=0)
-        self.stock_pill.grid(row=0, column=1, sticky="e")
-        
-        self.stock_label = tk.Label(
-            self.stock_pill,
-            text=stock_text,
-            font=("Segoe UI", 9),
-            bg=stock_bg,
-            fg=stock_fg,
-            padx=8,
-            pady=2
-        )
-        self.stock_label.pack()
-    
-    def load_image(self):
+        self.price_label.grid(row=2, column=1, sticky="w", pady=(8, 0))
+       
+    def _load_image(self):
         try:
-            # Get the absolute path to the assets folder
             assets_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets")
-            
-            # Try to find the image in assets (assuming item_data has an image_name field)
             image_name = self.item_data.get("image_name", "default.png")
             image_path = os.path.join(assets_path, image_name)
-            
-            # If the specified image doesn't exist, try to use one of the existing assets
             if not os.path.exists(image_path):
-                # List all files in the assets directory
                 available_images = [f for f in os.listdir(assets_path) if f.endswith(('.png', '.jpg', '.jpeg'))]
-                
                 if available_images:
-                    # Use any image from the assets directory
                     image_path = os.path.join(assets_path, available_images[0])
                 else:
-                    # Use dynamically created default image if no images exist
                     img = create_default_image()
                     return
-            
-            # Open and resize the image
             img = Image.open(image_path)
-            img = img.resize((120, 120), Image.LANCZOS)
-            
-            # Convert to RGBA if it's not already
+            img = img.resize((100, 100), Image.LANCZOS)
             if img.mode != 'RGBA':
                 img = img.convert('RGBA')
-            
-            # Create rounded corners mask
-            mask = Image.new("L", (120, 120), 0)
+            mask = Image.new("L", (100, 100), 0)
             mask_draw = ImageDraw.Draw(mask)
-            mask_draw.rounded_rectangle((0, 0, 120, 120), radius=10, fill=255)
-            
-            # Create a blank RGBA image
-            rounded_img = Image.new("RGBA", (120, 120), (0, 0, 0, 0))
-            # Paste the original image using the mask as alpha
+            mask_draw.rounded_rectangle((0, 0, 100, 100), radius=12, fill=255)
+            rounded_img = Image.new("RGBA", (100, 100), (0, 0, 0, 0))
             rounded_img.paste(img, (0, 0), mask)
-            
-            # Convert to PhotoImage for tkinter
             photo = ImageTk.PhotoImage(rounded_img)
-            
-            # Create label inside the container
             self.image_label = tk.Label(
                 self.image_container,
                 image=photo,
-                bg=COLORS["border"],
+                bg="#E0E7EF",
                 bd=0
             )
-            self.image_label.image = photo  # Keep a reference
-            self.image_label.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
-            
+            self.image_label.image = photo
+            self.image_label.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         except Exception as e:
-            print(f"Error loading image: {e}")
-            # Fallback to text if image loading fails
             self.image_label = tk.Label(
                 self.image_container,
                 text="No Image",
                 font=("Segoe UI", 10),
-                bg=COLORS["border"],
+                bg="#E0E7EF",
                 fg=COLORS["text_secondary"]
             )
             self.image_label.pack(fill=tk.BOTH, expand=True)
 
-class ItemsPage(tk.Frame):
+class ItemsPage(ctk.CTkFrame):
     def __init__(self, parent):
-        super().__init__(parent, bg=COLORS["bg_main"])
-        
-        # Sample data with references to local image files
-        self.items_data = [
-            {
-                "id": 1,
-                "name": "Medu Vada with Inji Chutney",
-                "category": "South Indian",
-                "price": 120.00,
-                "old_price": 150.00,
-                "in_stock": True,
-                "image_name": "medu_vada.png"
-            },
-            {
-                "id": 2,
-                "name": "Masala Dosa",
-                "category": "South Indian",
-                "price": 150.00,
-                "in_stock": True,
-                "image_name": "masala_dosa.png"
-            },
-            {
-                "id": 3,
-                "name": "Paneer Butter Masala",
-                "category": "North Indian",
-                "price": 220.00,
-                "old_price": 250.00,
-                "in_stock": True,
-                "image_name": "paneer_butter.png"
-            },
-            {
-                "id": 4,
-                "name": "Vegetable Biryani",
-                "category": "Main Course",
-                "price": 180.00,
-                "in_stock": False,
-                "image_name": "biryani.png"
-            },
-            {
-                "id": 5,
-                "name": "Sandwich",
-                "category": "Dessert",
-                "price": 80.00,
-                "in_stock": True,
-                "image_name": "gulab_jamun.png"
-            }
-        ]
-        
+        super().__init__(parent, fg_color=COLORS["bg_main"])
+        self.items_data = []
+        self.filtered_items = []
+        self.categories = ["All"]
+        self.selected_category = ctk.StringVar(value="All")
+
         # Page header with modern design
-        self.header = tk.Frame(self, bg=COLORS["bg_main"], height=80)
-        self.header.pack(fill=tk.X, padx=20, pady=10)
-        
-        self.title = tk.Label(
+        self.header = ctk.CTkFrame(self, fg_color="transparent", height=80)
+        self.header.pack(fill="x", padx=55, pady=10)
+
+        self.title = ctk.CTkLabel(
             self.header,
             text="Menu Items",
-            font=("Segoe UI", 24, "bold"),
-            bg=COLORS["bg_main"],
-            fg=COLORS["text_primary"]
+            font=ctk.CTkFont(size=24, weight="bold"),
+            text_color=COLORS["text_primary"]
         )
-        self.title.pack(side=tk.LEFT)
-        
-       
-        
+        self.title.pack(side="left")
+
+        # Filter dropdown
+        self.filter_frame = ctk.CTkFrame(self.header, fg_color="transparent")
+        self.filter_frame.pack(side="left", padx=(20, 0))
+        self.category_menu = ctk.CTkComboBox(
+            self.filter_frame,
+            variable=self.selected_category,
+            values=self.categories,
+            font=ctk.CTkFont(size=12),
+            width=140,
+            command=lambda _: self.apply_filters(),
+            fg_color="white",  # Make input white
+            border_width=2,
+            border_color=COLORS["border"],
+            corner_radius=10,  # More rounding
+            dropdown_fg_color="white",  # White dropdown background
+            dropdown_text_color=COLORS["text_primary"],  # Theme text color
+            button_color=COLORS["primary"],  # Blue arrow
+            button_hover_color=COLORS["primary_hover"],
+            text_color=COLORS["text_primary"]  # Ensure selected text is visible
+        )
+        self.category_menu.pack(side="left")
+
         # Search and filter section with modern design
-        self.search_frame = tk.Frame(self.header, bg=COLORS["bg_main"])
-        self.search_frame.pack(side=tk.RIGHT, padx=20)
-        
-        # Modern search entry
-        self.search_entry = tk.Entry(
+        self.search_frame = ctk.CTkFrame(self.header, fg_color="transparent")
+        self.search_frame.pack(side="right", padx=20)
+
+        self.search_entry = ctk.CTkEntry(
             self.search_frame,
-            font=("Segoe UI", 10),
-            bg=COLORS["bg_card"],
-            fg=COLORS["text_primary"],
-            bd=0,
-            highlightthickness=1,
-            highlightbackground=COLORS["border"],
-            highlightcolor=COLORS["primary"],
-            insertbackground=COLORS["text_primary"],
-            width=25
+            font=ctk.CTkFont(size=12),
+            width=180,
+            placeholder_text="Search items...",
+            fg_color="white",  # Make input white
+            border_width=2,
+            border_color=COLORS["border"],
+            corner_radius=10,  # More rounding
+            text_color=COLORS["text_primary"],  # Ensure text is visible
+            placeholder_text_color=COLORS["text_secondary"]  # Make placeholder visible
         )
-        self.search_entry.insert(0, "Search items...")
-        self.search_entry.pack(side=tk.LEFT, padx=(0, 10), ipady=5)
-        
-        # Modern search button
-        self.search_button = tk.Button(
+        self.search_entry.pack(side="left", padx=(0, 10), ipady=2)
+        self.search_entry.bind("<FocusIn>", self._clear_search_placeholder)
+        self.search_entry.bind("<Return>", lambda e: self.apply_filters())
+
+        self.search_button = ctk.CTkButton(
             self.search_frame,
             text="🔍",
-            font=("Segoe UI", 12),
-            bg=COLORS["primary"],
-            fg=COLORS["text_light"],
-            padx=10,
-            pady=2,
-            bd=0,
-            cursor="hand2",
-            activebackground=COLORS["primary_hover"],
-            activeforeground=COLORS["text_light"],
-            relief=tk.FLAT
+            font=ctk.CTkFont(size=14, weight="bold"),
+            fg_color=COLORS["primary"],
+            hover_color=COLORS["primary_hover"],
+            text_color="white",
+            width=40,
+            height=32,
+            command=self.apply_filters,
+            corner_radius=8
         )
-        self.search_button.pack(side=tk.LEFT)
-        
+        self.search_button.pack(side="left")
+
+        # Refresh button with icon
+        self.refresh_button = ctk.CTkButton(
+            self.search_frame,
+            text="⟳",
+            font=ctk.CTkFont(size=16, weight="bold"),
+            fg_color=COLORS["secondary"],
+            hover_color=COLORS["primary"],
+            text_color="white",
+            width=40,
+            height=32,
+            command=self.fetch_menu_items,
+            corner_radius=8
+        )
+        self.refresh_button.pack(side="left", padx=(6, 0))
+
         # Stats cards with modern design
-        self.stats_frame = tk.Frame(self, bg=COLORS["bg_main"])
-        self.stats_frame.pack(fill=tk.X, padx=20, pady=(0, 20))
-        
-        # Total items card
+        self.stats_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.stats_frame.pack(fill="x", padx=20, pady=(0, 20))
         self.total_items_card = Card(self.stats_frame, width=200, height=100)
-        self.total_items_card.pack(side=tk.LEFT, padx=(0, 10))
-        
-        self.total_items_label = tk.Label(
+        self.total_items_card.pack(side="left", padx=(35, 10), pady=(20,0))  # Move inside with more left padding
+        self.total_items_label = ctk.CTkLabel(
             self.total_items_card,
-            text="TOTAL ITEMS",
-            font=("Segoe UI", 10),
-            bg=COLORS["bg_card"],
-            fg=COLORS["text_secondary"]
+            text="TOTAL  ITEMS",
+            font=ctk.CTkFont(size=10),
+            text_color=COLORS["text_secondary"]
         )
         self.total_items_label.pack(anchor="w", pady=(10, 0))
-        
-        self.total_items_value = tk.Label(
+        self.total_items_value = ctk.CTkLabel(
             self.total_items_card,
-            text=str(len(self.items_data)),
-            font=("Segoe UI", 24, "bold"),
-            bg=COLORS["bg_card"],
-            fg=COLORS["primary"]
+            text="0",
+            font=ctk.CTkFont(size=24, weight="bold"),
+            text_color=COLORS["primary"]
         )
-        self.total_items_value.pack(anchor="w", pady=5)
-        
-        # In stock card
-        self.in_stock_card = Card(self.stats_frame, width=200, height=100)
-        self.in_stock_card.pack(side=tk.LEFT, padx=(0, 10))
-        
-        self.in_stock_label = tk.Label(
-            self.in_stock_card,
-            text="IN STOCK",
-            font=("Segoe UI", 10),
-            bg=COLORS["bg_card"],
-            fg=COLORS["text_secondary"]
-        )
-        self.in_stock_label.pack(anchor="w", pady=(10, 0))
-        
-        in_stock_count = sum(1 for item in self.items_data if item["in_stock"])
-        self.in_stock_value = tk.Label(
-            self.in_stock_card,
-            text=str(in_stock_count),
-            font=("Segoe UI", 24, "bold"),
-            bg=COLORS["bg_card"],
-            fg=COLORS["secondary"]
-        )
-        self.in_stock_value.pack(anchor="w", pady=5)
-        
-        # Out of stock card
-        self.out_stock_card = Card(self.stats_frame, width=200, height=100)
-        self.out_stock_card.pack(side=tk.LEFT)
-        
-        self.out_stock_label = tk.Label(
-            self.out_stock_card,
-            text="OUT OF STOCK",
-            font=("Segoe UI", 10),
-            bg=COLORS["bg_card"],
-            fg=COLORS["text_secondary"]
-        )
-        self.out_stock_label.pack(anchor="w", pady=(10, 0))
-        
-        out_stock_count = sum(1 for item in self.items_data if not item["in_stock"])
-        self.out_stock_value = tk.Label(
-            self.out_stock_card,
-            text=str(out_stock_count),
-            font=("Segoe UI", 24, "bold"),
-            bg=COLORS["bg_card"],
-            fg=COLORS["danger"]
-        )
-        self.out_stock_value.pack(anchor="w", pady=5)
-        
-        # Content area with smooth scrolling
-        self.content_frame = tk.Frame(self, bg=COLORS["bg_main"])
-        # Adjust padding and alignment for better alignment
-        self.content_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=(10, 20))
-        self.scroll_canvas = SmoothScroll(self.content_frame)
-        self.scroll_canvas.pack(side="left", fill="both", expand=True, padx=(10, 0))
-        self.scroll_canvas.scrollbar.pack(side="right", fill="y", padx=(0, 10))
+        self.total_items_value.pack(anchor="w", pady=0)
 
-        # Add item cards with consistent spacing and alignment
-        for idx, item in enumerate(self.items_data):
-            card = ItemCard(self.scroll_canvas.scrollable_frame, item)
-            card.pack(fill=tk.X, pady=10, padx=10)  # Adjusted padding for alignment
+        # Content area with scrollable frame
+        self.content_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.content_frame.pack(fill="both", expand=True, padx=20, pady=(10, 20))
+        self.scroll_frame = ctk.CTkScrollableFrame(self.content_frame, fg_color=COLORS["bg_main"], corner_radius=16)  # More rounding
+        self.scroll_frame.pack(fill="both", expand=True, padx=10)
 
-            # Add subtle separator between cards (except last one)
-            if idx < len(self.items_data) - 1:
-                separator = tk.Frame(
-                    self.scroll_canvas.scrollable_frame,
+        self.fetch_menu_items()
+
+    def _clear_search_placeholder(self, event):
+        if self.search_entry.get() == "Search items...":
+            self.search_entry.delete(0, tk.END)
+
+    def fetch_menu_items(self):
+        try:
+            resp = requests.get("http://127.0.0.1:5000/menu-items", timeout=5)
+            if resp.status_code == 200:
+                data = resp.json()
+                items = data.get("items", [])
+                # Normalize and convert backend data to expected format
+                self.items_data = []
+                categories = set()
+                for item in items:
+                    # Backend may store categories as comma-separated string
+                    cats = item.get("category", "").split(",")
+                    cats = [c.strip() for c in cats if c.strip()]
+                    for c in cats:
+                        categories.add(c)
+                    self.items_data.append({
+                        "id": item.get("id"),
+                        "name": item.get("name"),
+                        "category": cats if cats else ["Other"],
+                        "price": float(item.get("price").replace("₹", "").strip()) if isinstance(item.get("price"), str) else float(item.get("price", 0)),
+                        "old_price": None,  # Optionally add old_price if backend supports
+                        "image_name": item.get("image_name", "")
+                    })
+                self.categories = ["All"] + sorted(categories)
+                self.category_menu.configure(values=self.categories)
+                self.selected_category.set("All")
+                self.apply_filters()
+            else:
+                self.items_data = []
+                self.apply_filters()
+        except Exception as e:
+            print(f"Failed to fetch menu items: {e}")
+            self.items_data = []
+            self.apply_filters()
+
+    def apply_filters(self):
+        search = self.search_entry.get().strip().lower()
+        cat = self.selected_category.get()
+        filtered = self.items_data
+        if cat != "All":
+            filtered = [item for item in filtered if cat in item["category"]]
+        if search and search != "search items...":
+            filtered = [item for item in filtered if search in item["name"].lower()]
+        self.filtered_items = filtered
+        self.update_stats()
+        self.display_items()
+
+    def update_stats(self):
+        self.total_items_value.configure(text=str(len(self.filtered_items)))
+
+    def display_items(self):
+        for widget in self.scroll_frame.winfo_children():
+            widget.destroy()
+        for idx, item in enumerate(self.filtered_items):
+            card = ItemCard(self.scroll_frame, item)
+            card.pack(fill="x", pady=10, padx=10)
+            if idx < len(self.filtered_items) - 1:
+                separator = ctk.CTkFrame(
+                    self.scroll_frame,
                     height=1,
-                    bg=COLORS["border"]
+                    fg_color=COLORS["border"]
                 )
-                separator.pack(fill=tk.X, pady=(5, 10))  # Adjusted padding for alignment
+                separator.pack(fill="x", pady=(5, 10))

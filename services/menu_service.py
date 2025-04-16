@@ -2,7 +2,7 @@ import os
 import sqlite3
 
 class MenuService:
-    def __init__(self):
+    def __init__(self):  # Fixed initialization method name
         self.db_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "database", "canteen.db")
         os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
         self._init_db()
@@ -50,17 +50,84 @@ class MenuService:
         c.execute('SELECT COUNT(*) FROM menu_items')
         if c.fetchone()[0] == 0:
             initial_items = [
+                # Original Items
                 ("Pancakes", "₹50", "Fluffy pancakes with maple syrup", "https://images.unsplash.com/photo-1528207776546-365bb710ee93?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3MjkxODN8MHwxfHNlYXJjaHwxfHxQYW5jYWtlc3xlbnwwfHx8fDE3NDMwNjA1MTF8MA&ixlib=rb-4.0.3&q=80&w=1080", "Breakfast,Veg"),
-                ("Sandwich", "₹35", "Club sandwich with fries", "https://images.unsplash.com/photo-1528735602780-2552fd46c7af?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3MjkxODN8MHwxfHNlYXJjaHwxfHxTYW5kd2ljaHxlbnwwfHx8fDE3NDMwNjA1MTJ8MA&ixlib=rb-4.0.3&q=80&w=1080", "Lunch,Non-Veg"),
+                ("Sandwich", "₹35", "Club sandwich with fries", "https://images.unsplash.com/photo-1528735602780-2552fd46c7af?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3MjkxODN8MHwxfHNlYXJjaHwxfHxTYW5kd2ljaHxlbnwwfHx8fDE3NDMwNjA1MTJ8MA&ixlib=rb-4.0.3&q=80&w=1080", "Lunch,Non Veg"),
                 ("Coffee", "₹10", "Freshly brewed coffee", "https://images.unsplash.com/photo-1556742526-795a8eac090e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3MjkxODN8MXwxfHNlYXJjaHwxfHxDb2ZmZWV8ZW58MHx8fHwxNzQzMDYwNTEyfDA&ixlib=rb-4.0.3&q=80&w=1080", "Drinks,Veg"),
                 ("Fried Rice", "₹60", "Vegetable fried rice", "https://images.unsplash.com/photo-1512058564366-18510be2db19?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3MjkxODN8MHwxfHNlYXJjaHwxfHxGcmllZCUyMFJpY2V8ZW58MHx8fHwxNzQzMDYwNTEzfDA&ixlib=rb-4.0.3&q=80&w=1080", "Chinese,Veg"),
                 ("Cake", "₹40", "Chocolate cake slice", "https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3MjkxODN8MHwxfHNlYXJjaHwxfHxDYWtlfGVufDB8fHx8MTc0MzA2MDUxM3ww&ixlib=rb-4.0.3&q=80&w=1080", "Dessert,Veg"),
                 ("Salad", "₹20", "Greek salad", "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3MjkxODN8MHwxfHNlYXJjaHwxfHxTYWxhZHxlbnwwfHx8fDE3NDMwNjA1MTR8MA&ixlib=rb-4.0.3&q=80&w=1080", "Other,Veg"),
-                ("Omelette", "₹20", "Three-egg omelette with toast", "https://images.unsplash.com/photo-1494597706938-de2cd7341979?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3MjkxODN8MHwxfHNlYXJjaHwxfHxPbWVsZXR0ZXxlbnwwfHx8fDE3NDMwNjA1MTV8MA&ixlib=rb-4.0.3&q=80&w=1080", "Breakfast,Non-Veg"),
-                ("Pasta", "₹50", "Spaghetti carbonara", "https://images.unsplash.com/photo-1556761223-4c4282c73f77?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3MjkxODN8MHwxfHNlYXJjaHwxfHxQYXN0YXxlbnwwfHx8fDE3NDMwNjA1MTV8MA&ixlib=rb-4.0.3&q=80&w=1080", "Lunch,Non-Veg"),
+                ("Omelette", "₹20", "Three-egg omelette with toast", "https://images.unsplash.com/photo-1494597706938-de2cd7341979?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3MjkxODN8MHwxfHNlYXJjaHwxfHxPbWVsZXR0ZXxlbnwwfHx8fDE3NDMwNjA1MTV8MA&ixlib=rb-4.0.3&q=80&w=1080", "Breakfast,Non Veg"),
+                ("Pasta", "₹50", "Spaghetti carbonara", "https://images.unsplash.com/photo-1556761223-4c4282c73f77?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3MjkxODN8MHwxfHNlYXJjaHwxfHxQYXN0YXxlbnwwfHx8fDE3NDMwNjA1MTV8MA&ixlib=rb-4.0.3&q=80&w=1080", "Lunch,Non Veg"),
                 ("Smoothie", "₹20", "Mixed berry smoothie", "https://images.unsplash.com/photo-1505252585461-04db1eb84625?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3MjkxODN8MHwxfHNlYXJjaHwxfHxTbW9vdGhpZXxlbnwwfHx8fDE3NDMwNjA1MTZ8MA&ixlib=rb-4.0.3&q=80&w=1080", "Drinks,Veg"),
                 ("Chilli Paneer", "₹70", "Spicy paneer with bell peppers", "https://images.unsplash.com/photo-1567188040759-fb8a883dc6d8?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1080&q=80", "Chinese,Lunch,Jain"),
-                ("Jain Poha", "₹30", "Poha prepared Jain style without onions and potatoes", "https://images.unsplash.com/photo-1567337710282-00832b415979?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1080&q=80", "Breakfast,Jain")
+                ("Jain Poha", "₹30", "Poha prepared Jain style without onions and potatoes", "https://images.unsplash.com/photo-1567337710282-00832b415979?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1080&q=80", "Breakfast,Jain"),
+                
+                # Additional Breakfast Items
+                ("Idli Sambar", "₹40", "Steamed rice cakes served with lentil soup and coconut chutney", "https://images.unsplash.com/photo-1589301760014-d929f3979dbc?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "Breakfast,South Indian,Veg"),
+                ("Masala Dosa", "₹60", "Crispy rice crepe filled with spiced potato filling", "https://images.unsplash.com/photo-1589511541352-d01d25b7f43a?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "Breakfast,South Indian,Veg"),
+                ("Aloo Paratha", "₹40", "Whole wheat flatbread stuffed with spiced potatoes", "https://images.unsplash.com/photo-1565557623262-b51c2513a641?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "Breakfast,North Indian,Veg"),
+                ("Upma", "₹30", "Savory semolina porridge with vegetables", "https://images.unsplash.com/photo-1615474634823-741c3dc25ed3?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "Breakfast,South Indian,Veg"),
+                ("Vada Pav", "₹25", "Spicy potato fritter in a bun with chutneys", "https://images.unsplash.com/photo-1606491956689-2ea866880c84?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "Breakfast,Veg"),
+                ("Jain Dosa", "₹50", "Crispy rice crepe without onion and garlic", "https://images.unsplash.com/photo-1589511541352-d01d25b7f43a?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "Breakfast,South Indian,Jain"),
+                ("Sabudana Khichdi", "₹35", "Sago pearls cooked with peanuts and mild spices", "https://images.unsplash.com/photo-1601050690597-df0568f70950?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "Breakfast,Jain"),
+                
+                # Additional Lunch Items
+                ("Chole Bhature", "₹70", "Spiced chickpea curry with deep-fried bread", "https://images.unsplash.com/photo-1626777552726-4a6b54c97e46?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "Lunch,North Indian,Veg"),
+                ("Pav Bhaji", "₹60", "Spiced vegetable mash served with buttered rolls", "https://images.unsplash.com/photo-1565557623262-b51c2513a641?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "Lunch,Veg"),
+                ("Thali", "₹120", "Complete meal with rice, dal, vegetables, roti, and dessert", "https://images.unsplash.com/photo-1598866594230-a7c12756260f?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "Lunch,North Indian,Veg"),
+                ("Paneer Butter Masala", "₹90", "Cottage cheese cubes in rich tomato gravy", "https://images.unsplash.com/photo-1565557623262-b51c2513a641?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "Lunch,North Indian,Veg"),
+                ("Dal Makhani", "₹70", "Creamy black lentils simmered overnight", "https://images.unsplash.com/photo-1546833999-b9f581a1996d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "Lunch,North Indian,Veg"),
+                ("Butter Chicken", "₹110", "Tandoori chicken in rich tomato gravy", "https://images.unsplash.com/photo-1588166524941-3bf61a9c41db?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "Lunch,North Indian,Non Veg"),
+                ("Fish Curry", "₹100", "Fresh fish cooked in coconut-based gravy", "https://images.unsplash.com/photo-1626777552773-9a5e5b49d422?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "Lunch,South Indian,Non Veg"),
+                ("Jain Rajma Chawal", "₹80", "Kidney beans curry without onion/garlic served with rice", "https://images.unsplash.com/photo-1612204104655-6c8a57ae235e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "Lunch,North Indian,Jain"),
+                
+                # Additional Chinese Items
+                ("Veg Hakka Noodles", "₹50", "Stir-fried noodles with vegetables", "https://images.unsplash.com/photo-1585032226651-759b368d7246?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "Chinese,Veg"),
+                ("Veg Manchurian", "₹80", "Vegetable balls in spicy, sweet and sour sauce", "https://images.unsplash.com/photo-1626074961596-cab914d9e368?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "Chinese,Veg"),
+                ("Gobi Manchurian", "₹70", "Cauliflower florets in spicy Indo-Chinese sauce", "https://images.unsplash.com/photo-1567188040759-fb8a883dc6d8?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "Chinese,Veg"),
+                ("Veg Spring Rolls", "₹50", "Crispy rolls filled with vegetables", "https://images.unsplash.com/photo-1626074353765-517a681e40be?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "Chinese,Veg"),
+                ("Schezwan Fried Rice", "₹70", "Spicy fried rice with Schezwan sauce", "https://images.unsplash.com/photo-1603133872878-684f208fb84b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "Chinese,Veg"),
+                ("Chilli Chicken", "₹90", "Spicy chicken with bell peppers", "https://images.unsplash.com/photo-1625220194771-7ebdea0b70b9?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "Chinese,Non Veg"),
+                ("Chicken Hakka Noodles", "₹80", "Stir-fried noodles with chicken", "https://images.unsplash.com/photo-1585032226651-759b368d7246?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "Chinese,Non Veg"),
+                ("Jain Manchurian", "₹70", "Indo-Chinese dish prepared without onion and garlic", "https://images.unsplash.com/photo-1626074961596-cab914d9e368?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "Chinese,Jain"),
+                
+                # Additional Drinks Items
+                ("Masala Chai", "₹15", "Indian spiced tea", "https://images.unsplash.com/photo-1561336526-2914f13ceb36?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "Drinks,Veg"),
+                ("Lassi", "₹30", "Sweet yogurt-based drink", "https://images.unsplash.com/photo-1541658016709-82535e94bc69?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "Drinks,Veg"),
+                ("Fresh Lime Soda", "₹25", "Refreshing lime and soda drink", "https://images.unsplash.com/photo-1543253687-c931c8e01820?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "Drinks,Veg"),
+                ("Buttermilk", "₹20", "Spiced yogurt drink", "https://images.unsplash.com/photo-1553530758-b61f8c2a5a3e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "Drinks,Veg"),
+                ("Mango Shake", "₹40", "Fresh mango blended with milk", "https://images.unsplash.com/photo-1546173159-315724a31696?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "Drinks,Veg"),
+                ("Rose Milk", "₹35", "Chilled milk flavored with rose syrup", "https://images.unsplash.com/photo-1563805042-7684c019e1cb?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "Drinks,Veg"),
+                ("Jain Lassi", "₹30", "Yogurt-based drink prepared with Jain principles", "https://images.unsplash.com/photo-1541658016709-82535e94bc69?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "Drinks,Jain"),
+                
+                # Additional Dessert Items
+                ("Gulab Jamun", "₹30", "Deep-fried milk solids soaked in sugar syrup", "https://images.unsplash.com/photo-1601303516533-6e592999c452?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "Dessert,Veg"),
+                ("Rasgulla", "₹30", "Soft cheese balls in sugar syrup", "https://images.unsplash.com/photo-1627014610728-7cb929ad48aa?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "Dessert,Veg"),
+                ("Jalebi", "₹25", "Crispy, syrup-soaked spiral sweets", "https://images.unsplash.com/photo-1589249125609-c683e9209d23?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "Dessert,Veg"),
+                ("Kheer", "₹35", "Rice pudding with nuts", "https://images.unsplash.com/photo-1634116518069-ca380afba2d4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "Dessert,Veg"),
+                ("Kulfi", "₹40", "Traditional Indian ice cream", "https://images.unsplash.com/photo-1627014611763-62bbef12d619?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "Dessert,Veg"),
+                ("Gajar Ka Halwa", "₹40", "Sweet carrot pudding", "https://images.unsplash.com/photo-1610063633845-e3f1e94b98e9?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "Dessert,Veg"),
+                ("Jain Kheer", "₹35", "Rice pudding prepared without vanilla essence", "https://images.unsplash.com/photo-1634116518069-ca380afba2d4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "Dessert,Jain"),
+                
+                # Additional South Indian Items (New category)
+                ("Medu Vada", "₹30", "Savory lentil donuts", "https://images.unsplash.com/photo-1630383249896-981686ae8a76?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "South Indian,Veg"),
+                ("Uttapam", "₹55", "Thick pancake topped with vegetables", "https://images.unsplash.com/photo-1630409351217-bc4fa6422075?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "South Indian,Veg"),
+                ("Sambhar Rice", "₹60", "Rice served with lentil stew", "https://images.unsplash.com/photo-1605196560547-1f58f7e07645?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "South Indian,Lunch,Veg"),
+                ("Rasam", "₹30", "Spicy tamarind soup", "https://images.unsplash.com/photo-1606025682478-cc91dabf6968?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "South Indian,Veg"),
+                ("Appam", "₹40", "Fermented rice pancake with coconut milk", "https://images.unsplash.com/photo-1626777536136-36a8400c8bb1?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "South Indian,Veg"),
+                ("Chicken Chettinad", "₹100", "Spicy chicken curry from Tamil Nadu", "https://images.unsplash.com/photo-1588166524941-3bf61a9c41db?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "South Indian,Non Veg"),
+                ("Jain Uttapam", "₹50", "Thick pancake without onion and garlic", "https://images.unsplash.com/photo-1630409351217-bc4fa6422075?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "South Indian,Jain"),
+                
+                # Additional North Indian Items (New category)
+                ("Butter Naan", "₹20", "Leavened flatbread cooked in tandoor", "https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "North Indian,Veg"),
+                ("Kadai Paneer", "₹90", "Cottage cheese cooked with bell peppers", "https://images.unsplash.com/photo-1567188040759-fb8a883dc6d8?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "North Indian,Veg"),
+                ("Shahi Paneer", "₹90", "Cottage cheese in creamy gravy", "https://images.unsplash.com/photo-1567188040759-fb8a883dc6d8?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "North Indian,Veg"),
+                ("Rajma Chawal", "₹80", "Kidney beans curry served with rice", "https://images.unsplash.com/photo-1612204104655-6c8a57ae235e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "North Indian,Lunch,Veg"),
+                ("Aloo Gobi", "₹70", "Potato and cauliflower curry", "https://images.unsplash.com/photo-1601050690597-df0568f70950?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "North Indian,Veg"),
+                ("Chicken Biryani", "₹120", "Fragrant rice dish with chicken", "https://images.unsplash.com/photo-1589302168068-964664d93dc0?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "North Indian,Non Veg"),
+                ("Mutton Rogan Josh", "₹130", "Kashmiri lamb curry", "https://images.unsplash.com/photo-1626777536136-36a8400c8bb1?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "North Indian,Non Veg"),
+                ("Jain Aloo Gobi", "₹70", "Potato and cauliflower curry without onion/garlic", "https://images.unsplash.com/photo-1601050690597-df0568f70950?ixlib=rb-4.0.3&auto=format&fit=crop&w=1080&q=80", "North Indian,Jain")
             ]
             c.executemany('''
                 INSERT INTO menu_items (name, price, description, image_url, category)
@@ -96,7 +163,7 @@ class MenuService:
         return ["All"] + sorted(cats)
 
     def get_categories(self):
-        return self.categories
+        return  ["All", "Breakfast", "Lunch", "Veg", "Non Veg", "Jain", "North Indian", "South Indian", "Chinese", "Drinks", "Dessert"]
 
     def get_items_by_category(self, category):
         if category == "All":

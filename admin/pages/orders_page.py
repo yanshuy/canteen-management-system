@@ -1,4 +1,5 @@
 import customtkinter as ctk
+import tkinter as tk
 import requests
 import json
 from utils.colors import COLORS
@@ -71,62 +72,76 @@ class OrdersPage(ctk.CTkFrame):
             items_text = ", ".join([f"{item['qty']}x {item['name']}" for item in order["items"]])
             values = [order["id"], items_text, order.get("special_instructions", ""), f"₹{order['total']:.2f}"]
             for idx, val in enumerate(values):
-                ctk.CTkLabel(row, text=val, font=ctk.CTkFont(size=13), text_color=COLORS["text_primary"]).grid(row=0, column=idx, padx=8, pady=8, sticky="nsew")
+                label = ctk.CTkLabel(row, text=val, font=ctk.CTkFont(size=13), text_color=COLORS["text_primary"])
+                label.grid(row=0, column=idx, padx=8, pady=8, sticky="nsew")
                 row.grid_columnconfigure(idx, weight=1)
-            row.bind("<Double-1>", lambda e, oid=order["id"]: self.show_order_details_by_id(oid))
+                # Make label clickable as well
+                label.bind("<Button-1>", lambda e, oid=order["id"]: self.show_order_details_by_id(oid))
+            # Make the whole row clickable on single click
+            row.bind("<Button-1>", lambda e, oid=order["id"]: self.show_order_details_by_id(oid))
 
     def show_order_details_by_id(self, order_id):
         order = next((o for o in self.orders if o["id"] == order_id), None)
         if not order:
             return
-        detail_win = ctk.CTkToplevel(self)
+        detail_win = tk.Toplevel(self)
         detail_win.title(f"Order Details - #{order_id}")
         detail_win.geometry("500x400")
-        header = ctk.CTkFrame(detail_win, corner_radius=10, fg_color=COLORS["card_bg"], padx=20, pady=10)
-        header.pack(fill="x")
-        ctk.CTkLabel(
+        detail_win.configure(bg=COLORS["bg_main"])
+        # Header
+        header = tk.Frame(detail_win, bg=COLORS["card_bg"])
+        header.pack(fill="x", padx=20, pady=10)
+        tk.Label(
             header,
             text=f"Order #{order_id}",
-            font=ctk.CTkFont(size=16, weight="bold"),
-            text_color=COLORS["primary"]
+            font=("Arial", 16, "bold"),
+            fg=COLORS["primary"],
+            bg=COLORS["card_bg"]
         ).pack(anchor="w")
-        ctk.CTkLabel(
+        tk.Label(
             header,
             text=f"Special Instructions: {order.get('special_instructions', '')}",
-            font=ctk.CTkFont(size=12),
-            text_color=COLORS["text_secondary"]
+            font=("Arial", 12),
+            fg=COLORS["text_secondary"],
+            bg=COLORS["card_bg"]
         ).pack(anchor="w")
-        items_frame = ctk.CTkFrame(detail_win, fg_color=COLORS["bg_main"])
+        # Items
+        items_frame = tk.Frame(detail_win, bg=COLORS["bg_main"])
         items_frame.pack(fill="both", expand=True, padx=20, pady=10)
-        ctk.CTkLabel(
+        tk.Label(
             items_frame,
             text="Items Ordered:",
-            font=ctk.CTkFont(size=12, weight="bold"),
-            text_color=COLORS["primary"]
+            font=("Arial", 12, "bold"),
+            fg=COLORS["primary"],
+            bg=COLORS["bg_main"]
         ).pack(anchor="w")
         for item in order["items"]:
-            item_frame = ctk.CTkFrame(items_frame, fg_color="transparent")
+            item_frame = tk.Frame(items_frame, bg=COLORS["bg_main"])
             item_frame.pack(fill="x", pady=2)
-            ctk.CTkLabel(
+            tk.Label(
                 item_frame,
                 text=f"{item['qty']} x {item['name']} (Price: {item['price']})",
-                font=ctk.CTkFont(size=11),
-                text_color=COLORS["text_primary"]
+                font=("Arial", 11),
+                fg=COLORS["text_primary"],
+                bg=COLORS["bg_main"]
             ).pack(side="left")
-        summary_frame = ctk.CTkFrame(detail_win, fg_color=COLORS["bg_main"])
+        # Summary
+        summary_frame = tk.Frame(detail_win, bg=COLORS["card_bg"])
         summary_frame.pack(fill="x", padx=20, pady=10)
-        ctk.CTkLabel(
+        tk.Label(
             summary_frame,
             text=f"Total: ₹{order['total']:.2f}",
-            font=ctk.CTkFont(size=12, weight="bold"),
-            text_color=COLORS["primary"]
+            font=("Arial", 12, "bold"),
+            fg=COLORS["primary"],
+            bg=COLORS["card_bg"]
         ).pack(side="right")
         payment_status = order.get('payment_status', 'unpaid')
-        status_label = ctk.CTkLabel(
+        status_label = tk.Label(
             summary_frame,
             text=f"Payment Status: {payment_status.capitalize()}",
-            font=ctk.CTkFont(size=12),
-            text_color="#38B000" if payment_status == "paid" else "#E63946"
+            font=("Arial", 12),
+            fg="#38B000" if payment_status == "paid" else "#E63946",
+            bg=COLORS["card_bg"]
         )
         status_label.pack(side="left", padx=10)
         if payment_status != "paid":
@@ -134,23 +149,23 @@ class OrdersPage(ctk.CTkFrame):
                 try:
                     resp = requests.post(f"http://127.0.0.1:5000/orders/{order_id}/pay", timeout=5)
                     if resp.status_code == 200:
-                        ctk.CTkMessagebox.show_info("Success", f"Order #{order_id} marked as paid.")
-                        status_label.configure(text="Payment Status: Paid", text_color="#38B000")
+                        status_label.config(text="Payment Status: Paid", fg="#38B000")
                         order['payment_status'] = 'paid'
                         self.apply_filters()
+                        tk.messagebox.showinfo("Success", f"Order #{order_id} marked as paid.")
                     else:
-                        ctk.CTkMessagebox.show_error("Error", f"Failed to mark as paid: {resp.json().get('message')}")
+                        tk.messagebox.showerror("Error", f"Failed to mark as paid: {resp.json().get('message')}")
                 except Exception as e:
-                    ctk.CTkMessagebox.show_error("Error", f"Request failed: {e}")
-            pay_btn = ctk.CTkButton(
+                    tk.messagebox.showerror("Error", f"Request failed: {e}")
+            pay_btn = tk.Button(
                 summary_frame,
                 text="Mark as Paid",
-                fg_color="#38B000",
-                hover_color="#2D9300",
-                text_color="white",
-                font=ctk.CTkFont(size=12, weight="bold"),
+                bg="#38B000",
+                fg="white",
+                font=("Arial", 12, "bold"),
                 command=mark_as_paid,
-                corner_radius=8
+                relief=tk.RAISED,
+                activebackground="#2D9300"
             )
             pay_btn.pack(side="left", padx=10)
 

@@ -74,14 +74,7 @@ class Dashboard(tk.Frame):
         self.sidebar_footer = tk.Frame(self.sidebar, bg=COLORS["bg_sidebar"])
         self.sidebar_footer.pack(side=tk.BOTTOM, fill=tk.X, pady=20)
         
-        self.logout_btn = SidebarButton(
-            self.sidebar_footer, 
-            "Logout", 
-            self.logout,
-            bg_color=COLORS["danger"],
-            hover_color=COLORS["danger_hover"]
-        )
-        self.logout_btn.pack(fill=tk.X, pady=5, padx=20)
+        
         
         # Initialize pages dictionary
         self.pages = {}

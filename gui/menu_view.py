@@ -270,10 +270,10 @@ class MenuView:
                 padx=8,
                 pady=2
             )
-        elif "non-veg" in food_types:
+        elif "non veg" in food_types:
             food_type_label = customtkinter.CTkLabel(
                 info_frame,
-                text="Non-Veg",
+                text="Non Veg",
                 font=customtkinter.CTkFont(size=12, weight="bold"),
                 text_color="#D7263D",
                 fg_color="#FFE6E6",

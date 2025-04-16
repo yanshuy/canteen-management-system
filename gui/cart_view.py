@@ -663,7 +663,7 @@ class CartView:
             text="Your order has been confirmed. Please scan the QR code to pay.",
             font=ctk.CTkFont(size=14),
             wraplength=350
-        ).pack(pady=5)
+        ).pack(pady=(5,20))
         
 
         # Show QR code if available
@@ -704,94 +704,6 @@ class CartView:
         )
         close_btn.pack(side="right", padx=10)
 
-        def create_tick_image(size=120, bg_color="#38B000", fg_color="white", thickness_ratio=0.12):
-            """
-            Creates a professional-looking success tick/check mark icon.
-            
-            Args:
-                size (int): Size of the image in pixels
-                bg_color (str): Background circle color in hex
-                fg_color (str): Foreground tick color in hex
-                thickness_ratio (float): Thickness of the tick relative to size
-                
-            Returns:
-                PIL.Image: The generated tick image
-            """
-            # Create transparent background
-            img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-            draw = ImageDraw.Draw(img)
-            
-            # Calculate padding for better appearance
-            padding = size * 0.1
-            effective_size = size - (2 * padding)
-            
-            # Draw the outer circle with anti-aliasing
-            circle_bbox = [
-                (padding, padding),
-                (size - padding, size - padding)
-            ]
-            draw.ellipse(circle_bbox, fill=bg_color)
-            
-            # Calculate tick thickness
-            thickness = int(size * thickness_ratio)
-            
-            # For a more professional look, let's create a slightly smoother check mark
-            # by using multiple points instead of just three
-            
-            # Start point (left side of check)
-            start_x = padding + (effective_size * 0.27)
-            start_y = padding + (effective_size * 0.54)
-            
-            # Middle point (bottom of check)
-            mid_x = padding + (effective_size * 0.45)
-            mid_y = padding + (effective_size * 0.70)
-            
-            # Control point for smooth curve
-            ctrl_x = padding + (effective_size * 0.40)
-            ctrl_y = padding + (effective_size * 0.65)
-            
-            # End point (right side of check, top)
-            end_x = padding + (effective_size * 0.75)
-            end_y = padding + (effective_size * 0.32)
-            
-            # Enhanced check mark with more points for smoother appearance
-            tick_points = [
-                (start_x, start_y),                       # Start point
-                (start_x + size*0.05, start_y + size*0.05),  # Control point 1
-                (ctrl_x, ctrl_y),                         # Control point 2
-                (mid_x, mid_y),                           # Middle point
-                (mid_x + size*0.08, mid_y - size*0.03),   # Control point 3
-                (mid_x + size*0.16, mid_y - size*0.12),   # Control point 4
-                (end_x, end_y)                            # End point
-            ]
-            
-            # Draw the tick with rounded caps
-            for i in range(len(tick_points) - 1):
-                draw.line(
-                    [tick_points[i], tick_points[i+1]], 
-                    fill=fg_color, 
-                    width=thickness, 
-                    joint="curve"
-                )
-            
-            # Add subtle inner highlight for 3D effect
-            highlight_thickness = max(1, int(thickness * 0.25))
-            highlight_color = "#FFFFFF80"  # Semi-transparent white
-            
-            # Draw highlight on the top edge of the tick
-            for i in range(len(tick_points) - 2):
-                highlight_points = [
-                    (tick_points[i][0] - 1, tick_points[i][1] - 1),
-                    (tick_points[i+1][0] - 1, tick_points[i+1][1] - 1)
-                ]
-                draw.line(
-                    highlight_points,
-                    fill=highlight_color,
-                    width=highlight_thickness
-                )
-            
-            return img
-
         def poll_payment():
             try:
                 resp = requests.get(f"http://127.0.0.1:5000/orders/{order_id}/status", timeout=3)
@@ -800,10 +712,15 @@ class CartView:
                     close_btn.configure(state="normal")
                     # Replace QR code with tick image
                     if self.qr_label is not None:
-                        tick_img = create_tick_image()
-                        tick_photo = ctk.CTkImage(light_image=tick_img, dark_image=tick_img, size=(120, 120))
-                        self.qr_label.configure(image=tick_photo, text="Payment Successful!", font=ctk.CTkFont(size=16, weight="bold"), compound="top")
-                        self.qr_label.image = tick_photo  # Prevent garbage collection
+                        # Load the payment_succeeded.png image from static/
+                        try:
+                            tick_img_path = os.path.join(os.getcwd(), "static", "payment_succeeded.png")
+                            tick_img = Image.open(tick_img_path).resize((120, 120))
+                            tick_photo = ctk.CTkImage(light_image=tick_img, dark_image=tick_img, size=(120, 120))
+                            self.qr_label.configure(image=tick_photo, text="Payment Successful!", font=ctk.CTkFont(size=16, weight="bold"), compound="top")
+                            self.qr_label.image = tick_photo  # Prevent garbage collection
+                        except Exception as e:
+                            print(f"Failed to load tick image: {e}")
                     ctk.CTkLabel(frame, text="Payment received! You can now view your invoice.", font=ctk.CTkFont(size=14), text_color=self.colors["success"]).pack(pady=5)
                     return
             except Exception as e:
