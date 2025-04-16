@@ -172,20 +172,7 @@ class OrdersPage(ctk.CTkFrame):
             height=40
         )
         refresh_btn.pack(side="left", padx=8)
-        success_color = COLORS.get("success", COLORS["secondary"])
-        add_btn = ctk.CTkButton(
-            action_frame,
-            text="Add Order",
-            command=self.add_new_order,
-            fg_color=success_color,
-            hover_color="#2D9300",
-            text_color="white",
-            font=ctk.CTkFont(size=15, weight="bold"),
-            corner_radius=10,
-            width=120,
-            height=40
-        )
-        add_btn.pack(side="left", padx=8)
+        
 
     def load_orders_from_api(self):
         try:
@@ -222,5 +209,4 @@ class OrdersPage(ctk.CTkFrame):
         ctk.CTkMessagebox.show_info("Info", "Add new order functionality would be implemented here")
 
     def refresh_orders(self):
-        self.apply_filters()
-        ctk.CTkMessagebox.show_info("Refreshed", "Order list has been refreshed")
+        self.load_orders_from_api()
