@@ -5,6 +5,8 @@ import os
 import webbrowser
 from PIL import Image, ImageDraw
 from services.invoice_service import InvoiceGenerator
+import requests
+import qrcode
 
 class CartView:
     def __init__(self, root, cart_service, menu_service, on_back_to_menu=None):
@@ -43,12 +45,21 @@ class CartView:
         
         # Listen for cart updates using a safe mechanism
         self.listener_id = self.cart_service.add_listener(self._on_cart_update)
+
+        # Listen for menu updates (if menu changes, update cart view)
+        self.menu_listener_id = self.menu_service.add_listener(self._on_menu_update)
     
     def _on_cart_update(self, _):
         """Wrapper method to safely update cart display"""
         # Only update if the view still exists
         if not self.is_destroyed and hasattr(self, 'cart_frame'):
             # Use tkinter's after method to safely update from event loop
+            if hasattr(self, 'main_frame') and self.main_frame.winfo_exists():
+                self.main_frame.after(10, self.update_cart_display)
+    
+    def _on_menu_update(self, _):
+        """Update cart display if menu changes (e.g., price/item updates)"""
+        if not self.is_destroyed and hasattr(self, 'cart_frame'):
             if hasattr(self, 'main_frame') and self.main_frame.winfo_exists():
                 self.main_frame.after(10, self.update_cart_display)
     
@@ -309,7 +320,7 @@ class CartView:
         
         self.checkout_button = ctk.CTkButton(
             button_frame, 
-            text="Checkout & Generate Invoice", 
+            text="Checkout", 
             command=self._checkout,
             fg_color=self.colors["success"],
             hover_color="#2D9300",
@@ -563,73 +574,110 @@ class CartView:
         self.instructions_text.insert("1.0", default_text)
     
     def _checkout(self):
-        """Process checkout and generate invoice"""
+        """Process checkout and generate invoice, and send order to backend"""
         # Get special instructions
         special_instructions = self.instructions_text.get("1.0", "end-1c").strip()
-        
-        # Check if it's the default text and remove it if it is
         default_text = "Add any special requirements or instructions (e.g., allergies, spice level, etc.)"
         if special_instructions == default_text:
             special_instructions = ""
-        
+
+        # Prepare order data for backend
+        cart_items = self.cart_service.get_all_items()
+        order_items = []
+        for item_name, qty in cart_items.items():
+            menu_item = next((item for item in self.menu_service.get_all_items() if item["name"] == item_name), None)
+            if menu_item:
+                order_items.append({
+                    "name": item_name,
+                    "qty": qty,
+                    "price": menu_item["price"]
+                })
+        subtotal = sum(float(item["price"].replace("₹", "")) * item["qty"] for item in order_items)
+        tax = subtotal * 0.05
+        total = subtotal + tax
+        order_data = {
+            "items": order_items,
+            "special_instructions": special_instructions,
+            "total": total
+        }
+        print("Order successfully.", order_data)
+        # Send order to backend
+        try:
+            response = requests.post("http://127.0.0.1:5000/orders", json=order_data, timeout=5)
+            if response.status_code == 201:
+                print("Order sent to backend successfully.", order_data)
+                order_id = response.json().get("order_id")
+            else:
+                print(f"Backend error: {response.text}")
+                order_id = None
+        except Exception as e:
+            print(f"Failed to send order to backend: {e}")
+            order_id = None
+
+        if order_id is None:
+            ctk.CTkLabel(self.main_frame, text="Order creation failed. Please try again.", font=ctk.CTkFont(size=14), text_color=self.colors["danger"]).pack(pady=10)
+            return
+
         # Generate the invoice using the service
         invoice_service = InvoiceGenerator(
             cart_items=self.cart_service.get_all_items(),
             menu_service=self.menu_service,
-            special_instructions=special_instructions
+            special_instructions=special_instructions,
+            order_id=order_id
         )
-        
         invoice_path = invoice_service.generate_invoice()
-        
-        # Show success message
-        self._show_checkout_success(invoice_path)
-    
-    def _show_checkout_success(self, invoice_path):
-        """Show checkout success dialog with options to view invoice"""
+
+        # Generate static QR code (e.g., payment link or static text)
+        qr_data = "upi://pay?pa=demo@upi&pn=Canteen&am={:.2f}&cu=INR".format(order_data["total"])
+        qr_img = qrcode.make(qr_data)
+        qr_path = os.path.join(os.getcwd(), "static_qr.png")
+        qr_img.save(qr_path)
+
+        self._show_checkout_success(invoice_path, qr_path, order_id)
+
+    def _show_checkout_success(self, invoice_path, qr_path=None, order_id=None):
+        """Show checkout success dialog with QR code, poll for payment, then show invoice button"""
         success_window = ctk.CTkToplevel(self.root)
         success_window.title("Order Confirmed")
-        success_window.geometry("450x320")
-        success_window.transient(self.root)  # Set as transient to main window
-        success_window.grab_set()  # Make it modal
-        
-        # Center window
+        success_window.geometry("450x420")
+        success_window.transient(self.root)
+        success_window.grab_set()
         success_window.update_idletasks()
         width = success_window.winfo_width()
         height = success_window.winfo_height()
         x = (success_window.winfo_screenwidth() // 2) - (width // 2)
         y = (success_window.winfo_screenheight() // 2) - (height // 2)
         success_window.geometry(f"{width}x{height}+{x}+{y}")
-        
-        # Create a styled frame with padding
+
         frame = ctk.CTkFrame(success_window, corner_radius=15)
         frame.pack(fill="both", expand=True, padx=20, pady=20)
-        
-        # Success message with check mark icon
+
         ctk.CTkLabel(
             frame,
             text="✅ Order Confirmed!",
             font=ctk.CTkFont(size=24, weight="bold"),
             text_color=self.colors["success"]
-        ).pack(pady=(20, 25))
-        
+        ).pack(pady=(20, 15))
         ctk.CTkLabel(
             frame,
-            text="Your order has been confirmed and the invoice has been generated.",
+            text="Your order has been confirmed. Please scan the QR code to pay.",
             font=ctk.CTkFont(size=14),
             wraplength=350
         ).pack(pady=5)
         
-        ctk.CTkLabel(
-            frame,
-            text="Thank you for your order!",
-            font=ctk.CTkFont(size=14),
-            wraplength=350
-        ).pack(pady=5)
-        
-        # Buttons for invoice actions with improved styling
+
+        # Show QR code if available
+        self.qr_label = None  # Store reference to QR/tick label
+        if qr_path and os.path.exists(qr_path):
+            from PIL import ImageTk
+            qr_img = Image.open(qr_path).resize((120, 120))
+            qr_photo = ctk.CTkImage(light_image=qr_img, dark_image=qr_img, size=(120, 120))
+            self.qr_label = ctk.CTkLabel(frame, text="Scan to Pay", font=ctk.CTkFont(size=14, weight="bold"), image=qr_photo, compound="top")
+            self.qr_label.pack(pady=10)
+
         button_frame = ctk.CTkFrame(frame, fg_color="transparent")
-        button_frame.pack(pady=25)
-        
+        button_frame.pack(pady=15)
+
         view_invoice_btn = ctk.CTkButton(
             button_frame,
             text="View Invoice",
@@ -638,10 +686,11 @@ class CartView:
             hover_color=self.colors["secondary"],
             font=ctk.CTkFont(size=14, weight="bold"),
             height=38,
-            corner_radius=8
+            corner_radius=8,
+            state="disabled"
         )
         view_invoice_btn.pack(side="left", padx=10)
-        
+
         close_btn = ctk.CTkButton(
             button_frame,
             text="Done",
@@ -650,46 +699,138 @@ class CartView:
             hover_color="#2D9300",
             font=ctk.CTkFont(size=14, weight="bold"),
             height=38,
-            corner_radius=8
+            corner_radius=8,
+            state="disabled"
         )
         close_btn.pack(side="right", padx=10)
+
+        def create_tick_image(size=120, bg_color="#38B000", fg_color="white", thickness_ratio=0.12):
+            """
+            Creates a professional-looking success tick/check mark icon.
+            
+            Args:
+                size (int): Size of the image in pixels
+                bg_color (str): Background circle color in hex
+                fg_color (str): Foreground tick color in hex
+                thickness_ratio (float): Thickness of the tick relative to size
+                
+            Returns:
+                PIL.Image: The generated tick image
+            """
+            # Create transparent background
+            img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+            draw = ImageDraw.Draw(img)
+            
+            # Calculate padding for better appearance
+            padding = size * 0.1
+            effective_size = size - (2 * padding)
+            
+            # Draw the outer circle with anti-aliasing
+            circle_bbox = [
+                (padding, padding),
+                (size - padding, size - padding)
+            ]
+            draw.ellipse(circle_bbox, fill=bg_color)
+            
+            # Calculate tick thickness
+            thickness = int(size * thickness_ratio)
+            
+            # For a more professional look, let's create a slightly smoother check mark
+            # by using multiple points instead of just three
+            
+            # Start point (left side of check)
+            start_x = padding + (effective_size * 0.27)
+            start_y = padding + (effective_size * 0.54)
+            
+            # Middle point (bottom of check)
+            mid_x = padding + (effective_size * 0.45)
+            mid_y = padding + (effective_size * 0.70)
+            
+            # Control point for smooth curve
+            ctrl_x = padding + (effective_size * 0.40)
+            ctrl_y = padding + (effective_size * 0.65)
+            
+            # End point (right side of check, top)
+            end_x = padding + (effective_size * 0.75)
+            end_y = padding + (effective_size * 0.32)
+            
+            # Enhanced check mark with more points for smoother appearance
+            tick_points = [
+                (start_x, start_y),                       # Start point
+                (start_x + size*0.05, start_y + size*0.05),  # Control point 1
+                (ctrl_x, ctrl_y),                         # Control point 2
+                (mid_x, mid_y),                           # Middle point
+                (mid_x + size*0.08, mid_y - size*0.03),   # Control point 3
+                (mid_x + size*0.16, mid_y - size*0.12),   # Control point 4
+                (end_x, end_y)                            # End point
+            ]
+            
+            # Draw the tick with rounded caps
+            for i in range(len(tick_points) - 1):
+                draw.line(
+                    [tick_points[i], tick_points[i+1]], 
+                    fill=fg_color, 
+                    width=thickness, 
+                    joint="curve"
+                )
+            
+            # Add subtle inner highlight for 3D effect
+            highlight_thickness = max(1, int(thickness * 0.25))
+            highlight_color = "#FFFFFF80"  # Semi-transparent white
+            
+            # Draw highlight on the top edge of the tick
+            for i in range(len(tick_points) - 2):
+                highlight_points = [
+                    (tick_points[i][0] - 1, tick_points[i][1] - 1),
+                    (tick_points[i+1][0] - 1, tick_points[i+1][1] - 1)
+                ]
+                draw.line(
+                    highlight_points,
+                    fill=highlight_color,
+                    width=highlight_thickness
+                )
+            
+            return img
+
+        def poll_payment():
+            try:
+                resp = requests.get(f"http://127.0.0.1:5000/orders/{order_id}/status", timeout=3)
+                if resp.status_code == 200 and resp.json().get("payment_status") == "paid":
+                    view_invoice_btn.configure(state="normal")
+                    close_btn.configure(state="normal")
+                    # Replace QR code with tick image
+                    if self.qr_label is not None:
+                        tick_img = create_tick_image()
+                        tick_photo = ctk.CTkImage(light_image=tick_img, dark_image=tick_img, size=(120, 120))
+                        self.qr_label.configure(image=tick_photo, text="Payment Successful!", font=ctk.CTkFont(size=16, weight="bold"), compound="top")
+                        self.qr_label.image = tick_photo  # Prevent garbage collection
+                    ctk.CTkLabel(frame, text="Payment received! You can now view your invoice.", font=ctk.CTkFont(size=14), text_color=self.colors["success"]).pack(pady=5)
+                    return
+            except Exception as e:
+                print(f"Polling error: {e}")
+            # Poll every 2 seconds
+            success_window.after(2000, poll_payment)
+
+        poll_payment()
     
     def _open_invoice(self, invoice_path):
-        """Open the invoice file with the default system viewer"""
-        try:
-            # Convert to absolute path if needed
-            if not os.path.isabs(invoice_path):
-                invoice_path = os.path.join(os.getcwd(), invoice_path)
-            
-            # Open the invoice with the default application
-            webbrowser.open(f"file://{invoice_path}")
-        except Exception as e:
-            print(f"Error opening invoice: {e}")
+        """Open the invoice in the default PDF viewer"""
+        if os.path.exists(invoice_path):
+            webbrowser.open(invoice_path)
+        else:
+            print("Invoice file not found.")
     
     def _on_back_button_click(self):
         """Handle back button click"""
-        # Mark as destroyed so we don't update after destruction
-        self.is_destroyed = True
-        
-        # Remove our listener from cart service
-        if hasattr(self, 'listener_id'):
-            self.cart_service.remove_listener(self.listener_id)
-            
-        # Safely destroy the frame after a short delay to avoid callback issues
-        if hasattr(self, 'main_frame') and self.main_frame.winfo_exists():
-            self.main_frame.after(50, self._safe_destroy)
-    
-    def _safe_destroy(self):
-        """Safely destroy the main frame and call the back function"""
-        if hasattr(self, 'main_frame') and self.main_frame.winfo_exists():
-            self.main_frame.destroy()
-        
-        # Call the callback to show menu
         if self.on_back_to_menu:
             self.on_back_to_menu()
     
-    def show(self):
-        """Show the cart view"""
-        if hasattr(self, 'main_frame') and self.main_frame.winfo_exists():
-            self.main_frame.pack(fill="both", expand=True)
+    def destroy(self):
+        """Destroy the cart view and clean up listeners"""
+        self.is_destroyed = True
+        if hasattr(self, 'listener_id'):
+            self.cart_service.remove_listener(self.listener_id)
+        if hasattr(self, 'menu_listener_id'):
+            self.menu_service.remove_listener(self.menu_listener_id)
+        self.main_frame.destroy()
 

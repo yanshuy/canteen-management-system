@@ -2,10 +2,11 @@ from datetime import datetime
 import os
 
 class InvoiceGenerator:
-    def __init__(self, cart_items, menu_service, special_instructions=""):
+    def __init__(self, cart_items, menu_service, special_instructions="", order_id=None):
         self.cart_items = cart_items
         self.menu_service = menu_service
         self.special_instructions = special_instructions
+        self.order_id = order_id
         
         # Ensure the invoices directory exists in static folder
         self.invoices_dir = os.path.join("static", "invoices")
@@ -22,7 +23,7 @@ class InvoiceGenerator:
         invoice_data = self._calculate_invoice_data()
         
         # Generate the HTML content
-        html_content = self._generate_html_invoice(invoice_data, timestamp)
+        html_content = self._generate_html_invoice(invoice_data, timestamp, self.order_id)
         
         # Write to file
         with open(invoice_path, "w", encoding="utf-8") as f:
@@ -66,7 +67,7 @@ class InvoiceGenerator:
             "special_instructions": self.special_instructions
         }
     
-    def _generate_html_invoice(self, data, timestamp):
+    def _generate_html_invoice(self, data, timestamp, order_id=None):
         """Generate the HTML content for the invoice"""
         invoice_date = datetime.now().strftime("%B %d, %Y %I:%M %p")
         
@@ -75,7 +76,7 @@ class InvoiceGenerator:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Invoice #{timestamp}</title>
+    <title>Order No: {order_id if order_id is not None else timestamp}</title>
     <style>
         body {{
             font-family: 'Segoe UI', Arial, sans-serif;
@@ -199,7 +200,7 @@ class InvoiceGenerator:
             <div class="logo">🍽️</div>
             <h1>Canteeny</h1>
             <h2>INVOICE</h2>
-            <p>Invoice #: {timestamp}</p>
+            <p>Order No: {order_id if order_id is not None else timestamp}</p>
             <p>Date: {invoice_date}</p>
         </div>
         

@@ -19,6 +19,7 @@ COLORS = {
     # Adding missing color keys
     "success": "#2ecc71",  # Using the same color as secondary for consistency
     "accent": "#9b59b6",
-    "info": "#1abc9c"
+    "info": "#1abc9c",
+    "card_bg": "#ffffff",  # Added for customtkinter card backgrounds
 }
 

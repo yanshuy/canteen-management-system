@@ -255,6 +255,45 @@ class MenuView:
             anchor="w"
         )
         item_name.pack(anchor="w", pady=(0, 3))
+
+        # Food type label (veg, non-veg, jain)
+        food_types = set([cat.lower() for cat in item.get("category", [])])
+        food_type_label = None
+        if "veg" in food_types:
+            food_type_label = customtkinter.CTkLabel(
+                info_frame,
+                text="Veg",
+                font=customtkinter.CTkFont(size=12, weight="bold"),
+                text_color="#38B000",
+                fg_color="#E6FFE6",
+                corner_radius=6,
+                padx=8,
+                pady=2
+            )
+        elif "non-veg" in food_types:
+            food_type_label = customtkinter.CTkLabel(
+                info_frame,
+                text="Non-Veg",
+                font=customtkinter.CTkFont(size=12, weight="bold"),
+                text_color="#D7263D",
+                fg_color="#FFE6E6",
+                corner_radius=6,
+                padx=8,
+                pady=2
+            )
+        elif "jain" in food_types:
+            food_type_label = customtkinter.CTkLabel(
+                info_frame,
+                text="Jain",
+                font=customtkinter.CTkFont(size=12, weight="bold"),
+                text_color="#FF8C32",
+                fg_color="#FFF5E6",
+                corner_radius=6,
+                padx=8,
+                pady=2
+            )
+        if food_type_label:
+            food_type_label.pack(anchor="w", pady=(0, 4))
         
         # Price tag with accent color
         price_tag = customtkinter.CTkLabel(
