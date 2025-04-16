@@ -209,7 +209,7 @@ class InvoiceGenerator:
                 <p>Canteeny Food Services<br>
                 123 College Road<br>
                 Campus Plaza, Building 4<br>
-                Phone: (123) 456-7890</p>
+                Phone: 7930874211</p>
             </div>
             <div>
                 <h3>To:</h3>
@@ -276,8 +276,7 @@ class InvoiceGenerator:
         </div>
         
         <div class="footer">
-            <p>Thank you for your order! We hope you enjoy your meal.</p>
-            <p>For any issues with your order, please contact us at (123) 456-7890.</p>
+            <p>For any issues with your order, please contact us at 7930874211.</p>
         </div>
     </div>
 </body>
