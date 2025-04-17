@@ -8,13 +8,18 @@ class AuthService:
                 "role": "admin",
                 "name": "Administrator"
             },
-            "user": {
-                "password": "user123",
+            "yanshu": {
+                "password": "yanshu123",
                 "role": "user",
                 "name": "Test User"
             },
             # Add more test users here if needed
-            "test": {
+            "vaibhav": {
+                "password": "test123",
+                "role": "user",
+                "name": "Test Account"
+            },
+            "atharva": {
                 "password": "test123",
                 "role": "user",
                 "name": "Test Account"
