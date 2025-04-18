@@ -50,7 +50,7 @@ class LoginView:
         self.login_frame.grid_propagate(False)
         
         # Center content in the frame
-        self.login_frame.grid_rowconfigure((0, 1, 2, 3, 4, 5, 6), weight=0)
+        self.login_frame.grid_rowconfigure((0, 1, 2, 3, 4, 5, 6, 7, 8, 9), weight=0)
         self.login_frame.grid_columnconfigure(0, weight=1)
         
         # Logo and app title
@@ -75,8 +75,6 @@ class LoginView:
             font=customtkinter.CTkFont(size=18, weight="bold")
         )
         welcome_label.grid(row=2, column=0, pady=(0, 30))
-        
-    
         
         # Username field
         self.username_entry = customtkinter.CTkEntry(
@@ -115,7 +113,6 @@ class LoginView:
         self.error_label.grid(row=6, column=0, pady=(0, 15))
         self.error_label.grid_remove()  # Hide initially
         
-        
         # Login button
         login_button = customtkinter.CTkButton(
             self.login_frame,
@@ -128,11 +125,21 @@ class LoginView:
             width=300,
             height=45
         )
-        login_button.grid(row=8, column=0, padx=50, pady=(20, 20))
-        
-        
-        
-       
+        login_button.grid(row=8, column=0, padx=50, pady=(20, 10))
+
+        # Register button
+        register_button = customtkinter.CTkButton(
+            self.login_frame,
+            text="Register",
+            font=customtkinter.CTkFont(size=15, weight="bold"),
+            fg_color=self.colors["accent"],
+            hover_color=self.colors["secondary"],
+            corner_radius=8,
+            command=self.open_register_window,
+            width=300,
+            height=45
+        )
+        register_button.grid(row=9, column=0, padx=50, pady=(0, 20))
         
     def show_error(self, message):
         """Show error message below password field"""
@@ -182,4 +189,110 @@ class LoginView:
         # Implementation would depend on your app's flow
         print("Sign up clicked")
         # This would typically switch to a signup screen
+
+    def open_register_window(self):
+        RegisterWindow(self.root, self.auth_service, self.colors)
+
+class RegisterWindow:
+    def __init__(self, parent, auth_service, colors):
+        self.auth_service = auth_service
+        self.colors = colors
+        self.window = customtkinter.CTkToplevel(parent)
+        self.window.title("Register")
+        self.window.geometry("420x420")
+        self.window.resizable(False, False)
+        self.window.grab_set()
+        self._create_ui()
+
+    def _create_ui(self):
+        frame = customtkinter.CTkFrame(
+            self.window,
+            corner_radius=12,
+            fg_color=self.colors["card_bg"],
+            border_width=1,
+            border_color=self.colors["border"],
+            width=380,
+            height=350
+        )
+        frame.pack(padx=20, pady=20, fill="both", expand=True)
+        frame.pack_propagate(False)
+
+        title = customtkinter.CTkLabel(
+            frame,
+            text="Create Account",
+            font=customtkinter.CTkFont(size=22, weight="bold")
+        )
+        title.pack(pady=(30, 20))
+
+        self.fullname_entry = customtkinter.CTkEntry(
+            frame,
+            placeholder_text="Full Name",
+            width=300,
+            height=40,
+            corner_radius=8,
+            border_width=1,
+            border_color=self.colors["border"],
+            font=customtkinter.CTkFont(size=14)
+        )
+        self.fullname_entry.pack(pady=(0, 12))
+
+        self.username_entry = customtkinter.CTkEntry(
+            frame,
+            placeholder_text="Username",
+            width=300,
+            height=40,
+            corner_radius=8,
+            border_width=1,
+            border_color=self.colors["border"],
+            font=customtkinter.CTkFont(size=14)
+        )
+        self.username_entry.pack(pady=(0, 12))
+
+        self.password_entry = customtkinter.CTkEntry(
+            frame,
+            placeholder_text="Password",
+            width=300,
+            height=40,
+            corner_radius=8,
+            border_width=1,
+            border_color=self.colors["border"],
+            show="•",
+            font=customtkinter.CTkFont(size=14)
+        )
+        self.password_entry.pack(pady=(0, 12))
+
+        self.error_label = customtkinter.CTkLabel(
+            frame,
+            text="",
+            text_color=self.colors["error"],
+            font=customtkinter.CTkFont(size=13)
+        )
+        self.error_label.pack(pady=(0, 10))
+
+        register_btn = customtkinter.CTkButton(
+            frame,
+            text="Register",
+            font=customtkinter.CTkFont(size=15, weight="bold"),
+            fg_color=self.colors["primary"],
+            hover_color=self.colors["secondary"],
+            corner_radius=8,
+            command=self.register,
+            width=300,
+            height=40
+        )
+        register_btn.pack(pady=(10, 10))
+
+    def register(self):
+        full_name = self.fullname_entry.get().strip()
+        username = self.username_entry.get().strip()
+        password = self.password_entry.get().strip()
+        if not full_name or not username or not password:
+            self.error_label.configure(text="All fields are required")
+            return
+        result = self.auth_service.register(username, password, full_name)
+        if result.get("success"):
+            self.error_label.configure(text="Registered successfully!", text_color=self.colors["success"])
+            self.window.after(1200, self.window.destroy)
+        else:
+            self.error_label.configure(text=result.get("message", "Registration failed"), text_color=self.colors["error"])
 

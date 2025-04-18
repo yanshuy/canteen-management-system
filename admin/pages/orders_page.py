@@ -206,16 +206,16 @@ class OrdersPage(ctk.CTkFrame):
         self.load_orders_from_api()
 
     def apply_filters(self):
-        filter_val = self.filter_var.get()
+        filter_val = self.filter_var.get().strip().lower()
         filtered = []
         for order in self.orders:
+            # Normalize payment_status for robust comparison
             status = str(order.get("payment_status", "unpaid")).strip().lower()
-            status_match = (
-                filter_val == "all" or
-                (filter_val == "paid" and status == "paid") or
-                (filter_val == "unpaid" and status != "paid")
-            )
-            if status_match:
+            if filter_val == "all":
+                filtered.append(order)
+            elif filter_val == "paid" and status == "paid":
+                filtered.append(order)
+            elif filter_val == "unpaid" and status != "paid":
                 filtered.append(order)
         self.display_orders(filtered)
         self.update_idletasks()
