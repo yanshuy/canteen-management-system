@@ -3,6 +3,7 @@ DELETE FROM menu_items;
 DELETE FROM sqlite_sequence WHERE name='menu_items';
 
 SELECT * FROM menu_items;
+SELECT * FROM users;
 
 SELECT * FROM orders;
 
