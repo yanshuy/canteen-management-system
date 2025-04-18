@@ -166,6 +166,10 @@ class MenuView:
         for widget in self.scrollable_frame.winfo_children():
             widget.destroy()
         
+        # Scroll to top when filter changes
+        if hasattr(self.scrollable_frame, '_parent_canvas'):
+            self.scrollable_frame._parent_canvas.yview_moveto(0)
+
         # Get filtered items
         filtered_items = self.menu_service.get_items_by_category(category)
         
