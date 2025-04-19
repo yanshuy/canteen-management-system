@@ -23,11 +23,18 @@ class LoginView:
             "border": ("#E0E0E0", "#3A3A3A")
         }
         
-        # Create logo placeholder - could be replaced with actual logo
-        self.logo_image = customtkinter.CTkImage(
-            Image.new("RGB", (100, 100), "gray"),
-            size=(100, 100)
-        )
+        # Load and use the actual logo image from the root folder
+        logo_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "logo.png")
+        if os.path.exists(logo_path):
+            self.logo_image = customtkinter.CTkImage(
+                Image.open(logo_path).resize((100, 100)),
+                size=(100, 100)
+            )
+        else:
+            self.logo_image = customtkinter.CTkImage(
+                Image.new("RGB", (100, 100), "gray"),
+                size=(100, 100)
+            )
         
         self._create_ui()
     
@@ -199,33 +206,36 @@ class RegisterWindow:
         self.colors = colors
         self.window = customtkinter.CTkToplevel(parent)
         self.window.title("Register")
-        self.window.geometry("420x420")
-        self.window.resizable(False, False)
+        # Set the registration window to cover the full screen (Windows compatible)
+        screen_width = self.window.winfo_screenwidth()
+        screen_height = self.window.winfo_screenheight()
+        self.window.geometry(f"{screen_width}x{screen_height}+0+0")
         self.window.grab_set()
         self._create_ui()
 
     def _create_ui(self):
-        frame = customtkinter.CTkFrame(
+        # Centered frame for registration form
+        form_frame = customtkinter.CTkFrame(
             self.window,
             corner_radius=12,
             fg_color=self.colors["card_bg"],
             border_width=1,
             border_color=self.colors["border"],
-            width=380,
-            height=350
+            width=420,
+            height=480
         )
-        frame.pack(padx=20, pady=20, fill="both", expand=True)
-        frame.pack_propagate(False)
+        form_frame.place(relx=0.5, rely=0.5, anchor="c")
+        form_frame.pack_propagate(False)
 
         title = customtkinter.CTkLabel(
-            frame,
+            form_frame,
             text="Create Account",
             font=customtkinter.CTkFont(size=22, weight="bold")
         )
         title.pack(pady=(30, 20))
 
         self.fullname_entry = customtkinter.CTkEntry(
-            frame,
+            form_frame,
             placeholder_text="Full Name",
             width=300,
             height=40,
@@ -237,7 +247,7 @@ class RegisterWindow:
         self.fullname_entry.pack(pady=(0, 12))
 
         self.username_entry = customtkinter.CTkEntry(
-            frame,
+            form_frame,
             placeholder_text="Username",
             width=300,
             height=40,
@@ -249,7 +259,7 @@ class RegisterWindow:
         self.username_entry.pack(pady=(0, 12))
 
         self.password_entry = customtkinter.CTkEntry(
-            frame,
+            form_frame,
             placeholder_text="Password",
             width=300,
             height=40,
@@ -261,8 +271,21 @@ class RegisterWindow:
         )
         self.password_entry.pack(pady=(0, 12))
 
+        self.confirm_password_entry = customtkinter.CTkEntry(
+            form_frame,
+            placeholder_text="Confirm Password",
+            width=300,
+            height=40,
+            corner_radius=8,
+            border_width=1,
+            border_color=self.colors["border"],
+            show="•",
+            font=customtkinter.CTkFont(size=14)
+        )
+        self.confirm_password_entry.pack(pady=(0, 12))
+
         self.error_label = customtkinter.CTkLabel(
-            frame,
+            form_frame,
             text="",
             text_color=self.colors["error"],
             font=customtkinter.CTkFont(size=13)
@@ -270,7 +293,7 @@ class RegisterWindow:
         self.error_label.pack(pady=(0, 10))
 
         register_btn = customtkinter.CTkButton(
-            frame,
+            form_frame,
             text="Register",
             font=customtkinter.CTkFont(size=15, weight="bold"),
             fg_color=self.colors["primary"],
@@ -286,8 +309,12 @@ class RegisterWindow:
         full_name = self.fullname_entry.get().strip()
         username = self.username_entry.get().strip()
         password = self.password_entry.get().strip()
-        if not full_name or not username or not password:
+        confirm_password = self.confirm_password_entry.get().strip()
+        if not full_name or not username or not password or not confirm_password:
             self.error_label.configure(text="All fields are required")
+            return
+        if password != confirm_password:
+            self.error_label.configure(text="Passwords do not match")
             return
         result = self.auth_service.register(username, password, full_name)
         if result.get("success"):
